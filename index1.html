@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الهيكل التنظيمي وتحليل بيانات الموظفين</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .upload-area {
+            border: 2px dashed #3498db;
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #f8f9fa;
+        }
+        .upload-area:hover {
+            background-color: #e9ecef;
+        }
+        .org-chart {
+            overflow: auto;
+            padding: 20px 0;
+            max-height: 70vh;
+        }
+        .node {
+            margin: 10px 0;
+            padding: 15px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .toggle-icon {
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            width: 20px;
+            text-align: center;
+        }
+        .children {
+            padding-right: 30px;
+            border-right: 2px dashed #bdc3c7;
+            margin-right: 15px;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        .children.hidden {
+            display: none;
+        }
+        .level-0 {
+            background-color: #e74c3c;
+            font-size: 18px;
+        }
+        .level-1 {
+            background-color: #3498db;
+        }
+        .level-2 {
+            background-color: #2ecc71;
+        }
+        .level-3 {
+            background-color: #f39c12;
+        }
+        .level-4 {
+            background-color: #9b59b6;
+        }
+        .level-5 {
+            background-color: #1abc9c;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .search-box {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 300px;
+            font-size: 16px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #7f8c8d;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            text-align: center;
+            min-width: 150px;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        .node-details {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #ecf0f1;
+        }
+        .detail-value {
+            color: #ffffff;
+        }
+        .salary-highlight {
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff3cd;
+            background-color: #343a40;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .analysis-section {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: right;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        tr:hover {
+            background-color: #e8f4fd;
+        }
+        .chart-container {
+            height: 300px;
+            margin: 20px 0;
+            position: relative;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background-color: #ecf0f1;
+            border-radius: 8px 8px 0 0;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 15px 25px;
+            background-color: #ecf0f1;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 1;
+            text-align: center;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+        .tab:hover {
+            background-color: #d6eaf8;
+        }
+        .tab.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background-color: white;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .main-tabs {
+            margin-bottom: 30px;
+        }
+        .main-tab {
+            font-size: 18px;
+            padding: 15px 30px;
+        }
+        .dynamic-column {
+            display: none;
+        }
+        .visible {
+            display: table-cell;
+        }
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        .message {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>الهيكل التنظيمي وتحليل بيانات الموظفين</h1>
+        
+        <div class="upload-area" id="uploadArea">
+            <h3>اسحب وأفلت ملف Excel هنا</h3>
+            <p>أو</p>
+            <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
+            <button class="btn" onclick="document.getElementById('fileInput').click()">اختر ملف Excel</button>
+        </div>
+        
+        <div id="statusMessage" class="message" style="display: none;"></div>
+        
+        <div class="main-tabs tabs">
+            <button class="tab main-tab active" data-tab="org-structure">الهيكل التنظيمي</button>
+            <button class="tab main-tab" data-tab="data-analysis">تحليل بيانات الموظفين</button>
+        </div>
+        
+        <div id="org-structure" class="tab-content active">
+            <div class="stats" id="orgStats" style="display: none;">
+                <!-- سيتم تعبئة الإحصائيات هنا ديناميكيًا -->
+            </div>
+            
+            <div class="controls">
+                <input type="text" class="search-box" placeholder="البحث عن موظف..." id="searchInput">
+                <div>
+                    <button class="btn" id="collapseAllBtn">طي الكل</button>
+                    <button class="btn" id="expandAllBtn">توسيع الكل</button>
+                </div>
+            </div>
+            
+            <div class="org-chart" id="orgChart">
+                <div class="loading">يرجى رفع ملف Excel لعرض الهيكل التنظيمي</div>
+            </div>
+        </div>
+        
+        <div id="data-analysis" class="tab-content">
+            <div class="tabs">
+                <button class="tab active" data-tab="demographics">التحليل الديموغرافي</button>
+                <button class="tab" data-tab="departments">تحليل الأقسام</button>
+                <button class="tab" data-tab="salaries">تحليل الرواتب</button>
+                <button class="tab" data-tab="experience">تحليل الخبرة</button>
+            </div>
+            
+            <div id="demographics" class="tab-content active">
+                <div class="analysis-section">
+                    <h2 class="section-title">التحليل الديموغرافي</h2>
+                    <div id="demographicsStats" class="stats"></div>
+                    
+                    <h3>التوزيع حسب الجنسية</h3>
+                    <table id="nationalityTable">
+                        <thead>
+                            <tr>
+                                <th>الجنسية</th>
+                                <th>عدد الموظفين</th>
+                                <th>النسبة المئوية</th>
+                            </tr>
+                        </thead>
+                        <tbody id="nationalityTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="departments" class="tab-content">
+                <div class="analysis-section">
+                    <h2 class="section-title">تحليل الأقسام</h2>
+                    <div id="departmentsStats" class="stats"></div>
+                    
+                    <h3>توزيع الموظفين حسب الأقسام</h3>
+                    <table id="departmentTable">
+                        <thead>
+                            <tr>
+                                <th>اسم القسم</th>
+                                <th>عدد الموظفين</th>
+                                <th>النسبة المئوية</th>
+                            </tr>
+                        </thead>
+                        <tbody id="departmentTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="salaries" class="tab-content">
+                <div class="analysis-section">
+                    <h2 class="section-title">تحليل الرواتب</h2>
+                    <div id="salariesStats" class="stats"></div>
+                    
+                    <h3>تحليل الرواتب حسب الأقسام</h3>
+                    <table id="salaryDepartmentTable">
+                        <thead>
+                            <tr>
+                                <th>اسم القسم</th>
+                                <th>إجمالي الرواتب</th>
+                                <th>متوسط الراتب</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salaryDepartmentTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="experience" class="tab-content">
+                <div class="analysis-section">
+                    <h2 class="section-title">تحليل الخبرة</h2>
+                    <div id="experienceStats" class="stats"></div>
+                    
+                    <h3>تحليل الخبرة حسب الأقسام</h3>
+                    <table id="experienceDepartmentTable">
+                        <thead>
+                            <tr>
+                                <th>اسم القسم</th>
+                                <th>متوسط سنوات الخبرة</th>
+                                <th>أعلى سنوات خبرة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="experienceDepartmentTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        // المتغيرات العامة
+        let employees = [];
+        let orgData = null;
+        let isAllExpanded = true;
+        
+        // معالجة رفع الملف
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+        
+        // معالجة السحب والإفلات
+        const uploadArea = document.getElementById('uploadArea');
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '#e9ecef';
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '#f8f9fa';
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '#f8f9fa';
+            
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+        
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+        
+        function handleFile(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // الحصول على أول ورقة في الملف
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // تحويل البيانات إلى JSON
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    // معالجة البيانات
+                    processExcelData(jsonData);
+                    
+                    // عرض رسالة نجاح
+                    showMessage('تم تحميل الملف بنجاح!', 'success');
+                    
+                    // تحديث التحليلات
+                    updateOrgStructure();
+                    updateAnalysis();
+                    
+                } catch (error) {
+                    console.error('خطأ في معالجة الملف:', error);
+                    showMessage('حدث خطأ أثناء معالجة الملف. يرجى التأكد من أن الملف بصيغة Excel وصحيح.', 'error');
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function processExcelData(data) {
+            // البحث عن رؤوس الأعمدة
+            let headers = [];
+            let startRow = 0;
+            
+            for (let i = 0; i < data.length; i++) {
+                if (Array.isArray(data[i]) && data[i].length > 0) {
+                    // البحث عن الصف الذي يحتوي على "الرقم الوظيفي" و"الاسم كاملاً باللغة العربية"
+                    if (data[i].some(cell => typeof cell === 'string' && cell.includes('الرقم الوظيفي')) &&
+                        data[i].some(cell => typeof cell === 'string' && cell.includes('الاسم كاملاً باللغة العربية'))) {
+                        headers = data[i].filter(cell => cell !== undefined && cell !== null);
+                        startRow = i + 1;
+                        break;
+                    }
+                }
+            }
+            
+            if (headers.length === 0) {
+                throw new Error('لم يتم العثور على رؤوس الأعمدة المناسبة في ملف Excel');
+            }
+            
+            // تعيين فهرس كل عمود
+            const columnIndices = {};
+            headers.forEach((header, index) => {
+                if (typeof header === 'string') {
+                    if (header.includes('الرقم الوظيفي')) columnIndices.id = index;
+                    else if (header.includes('الاسم كاملاً باللغة العربية')) columnIndices.name = index;
+                    else if (header.includes('المسمى الوظيفي')) columnIndices.jobTitle = index;
+                    else if (header.includes('المدير المباشر')) columnIndices.directManager = index;
+                    else if (header.includes('الجنسية')) columnIndices.nationality = index;
+                    else if (header.includes('الجنس')) columnIndices.gender = index;
+                    else if (header.includes('القسم')) columnIndices.department = index;
+                    else if (header.includes('الموقع')) columnIndices.location = index;
+                    else if (header.includes('تاريخ الانضمام')) columnIndices.joinDate = index;
+                    else if (header.includes('سنوات خبرة العمل')) columnIndices.experience = index;
+                    else if (header.includes('الراتب الأساسي')) columnIndices.basicSalary = index;
+                    else if (header.includes('بدل سكن')) columnIndices.housingAllowance = index;
+                    else if (header.includes('بدل مواصلات')) columnIndices.transportationAllowance = index;
+                    else if (header.includes('كامل الراتب')) columnIndices.totalSalary = index;
+                }
+            });
+            
+            // التحقق من وجود الأعمدة الأساسية
+            if (!columnIndices.name || !columnIndices.jobTitle) {
+                throw new Error('لم يتم العثور على الأعمدة الأساسية (الاسم، المسمى الوظيفي) في ملف Excel');
+            }
+            
+            // معالجة بيانات الموظفين
+            employees = [];
+            for (let i = startRow; i < data.length; i++) {
+                const row = data[i];
+                if (!Array.isArray(row) || row.length === 0) continue;
+                
+                // تخطي الصفوف الفارغة أو التي لا تحتوي على اسم الموظف
+                if (!row[columnIndices.name] || row[columnIndices.name] === '') continue;
+                
+                // استخراج سنوات الخبرة كرقم
+                let experienceYears = 0;
+                if (row[columnIndices.experience]) {
+                    const experienceText = row[columnIndices.experience].toString();
+                    // استخراج الرقم من النص (مثال: "3 سنة، 6 شهر، 13 يوم")
+                    const yearsMatch = experienceText.match(/(\d+)\s*سنة/);
+                    const monthsMatch = experienceText.match(/(\d+)\s*شهر/);
+                    if (yearsMatch) {
+                        experienceYears = parseInt(yearsMatch[1]);
+                        if (monthsMatch) {
+                            experienceYears += parseInt(monthsMatch[1]) / 12;
+                        }
+                    }
+                }
+                
+                const employee = {
+                    id: row[columnIndices.id] ? row[columnIndices.id].toString() : 'emp_' + Date.now() + '_' + i,
+                    name: row[columnIndices.name] ? row[columnIndices.name].toString() : '',
+                    jobTitle: row[columnIndices.jobTitle] ? row[columnIndices.jobTitle].toString() : '',
+                    directManager: row[columnIndices.directManager] ? row[columnIndices.directManager].toString() : '',
+                    nationality: row[columnIndices.nationality] ? row[columnIndices.nationality].toString() : '',
+                    gender: row[columnIndices.gender] ? row[columnIndices.gender].toString() : '',
+                    department: row[columnIndices.department] ? row[columnIndices.department].toString() : '',
+                    location: row[columnIndices.location] ? row[columnIndices.location].toString() : '',
+                    joinDate: row[columnIndices.joinDate] ? formatDate(row[columnIndices.joinDate]) : '',
+                    experience: row[columnIndices.experience] ? row[columnIndices.experience].toString() : '',
+                    experienceYears: experienceYears,
+                    basicSalary: row[columnIndices.basicSalary] ? parseFloat(row[columnIndices.basicSalary]) || 0 : 0,
+                    housingAllowance: row[columnIndices.housingAllowance] ? parseFloat(row[columnIndices.housingAllowance]) || 0 : 0,
+                    transportationAllowance: row[columnIndices.transportationAllowance] ? parseFloat(row[columnIndices.transportationAllowance]) || 0 : 0,
+                    totalSalary: row[columnIndices.totalSalary] ? parseFloat(row[columnIndices.totalSalary]) || 0 : 0,
+                    children: [],
+                    isExpanded: true
+                };
+                
+                // إذا لم يتم تحديد الراتب الإجمالي، نحسبه
+                if (employee.totalSalary === 0) {
+                    employee.totalSalary = employee.basicSalary + 
+                                         employee.housingAllowance + 
+                                         employee.transportationAllowance;
+                }
+                
+                employees.push(employee);
+            }
+        }
+        
+        function formatDate(date) {
+            if (typeof date === 'string') {
+                return date;
+            } else if (date instanceof Date) {
+                return date.toISOString().split('T')[0];
+            } else {
+                // محاولة تحليل التاريخ إذا كان رقمًا (تنسيق Excel)
+                try {
+                    const excelDate = new Date(Math.round((date - 25569) * 86400 * 1000));
+                    return excelDate.toISOString().split('T')[0];
+                } catch (e) {
+                    return '';
+                }
+            }
+        }
+        
+        // دالة لتحديث الهيكل التنظيمي
+        function updateOrgStructure() {
+            if (employees.length === 0) return;
+            
+            // بناء الهيكل التنظيمي
+            buildOrgStructure();
+            updateOrgStats();
+            renderOrgChart();
+            
+            // عرض إحصائيات الهيكل
+            document.getElementById('orgStats').style.display = 'flex';
+        }
+        
+        // بناء الهيكل التنظيمي من البيانات
+        function buildOrgStructure() {
+            // إنشاء خريطة للموظفين
+            const employeeMap = new Map();
+            employees.forEach(emp => {
+                // إذا لم يكن هناك ID، ننشئ واحدًا
+                if (!emp.id) {
+                    emp.id = generateId();
+                }
+                employeeMap.set(emp.id, {...emp, children: [], isExpanded: true});
+            });
+            
+            // ربط الموظفين بمديريهم
+            employees.forEach(emp => {
+                if (emp.directManager && emp.directManager.trim() !== '' && emp.directManager !== 'ــــــــــــــــــــــــــــــــــــــــــــــ') {
+                    // البحث عن المدير بالاسم
+                    const manager = employees.find(m => m.name === emp.directManager);
+                    if (manager) {
+                        const managerNode = employeeMap.get(manager.id);
+                        if (managerNode) {
+                            managerNode.children.push(employeeMap.get(emp.id));
+                        }
+                    }
+                }
+            });
+            
+            // العثور على الجذر (الموظفين الذين ليس لديهم مدير أو مديرهم فارغ)
+            const rootEmployees = employees.filter(emp => 
+                !emp.directManager || 
+                emp.directManager.trim() === '' || 
+                emp.directManager === 'ــــــــــــــــــــــــــــــــــــــــــــــ'
+            );
+            
+            if (rootEmployees.length > 0) {
+                orgData = employeeMap.get(rootEmployees[0].id);
+            } else if (employees.length > 0) {
+                // إذا لم يتم العثور على جذر، نستخدم أول موظف
+                orgData = employeeMap.get(employees[0].id);
+            } else {
+                // إذا لم يكن هناك موظفين، ننشئ هيكلًا فارغًا
+                orgData = {
+                    id: generateId(),
+                    name: 'الرئيس التنفيذي',
+                    jobTitle: 'رئيس تنفيذي',
+                    directManager: '',
+                    nationality: '',
+                    gender: '',
+                    department: '',
+                    location: '',
+                    joinDate: new Date().toISOString().split('T')[0],
+                    experience: '',
+                    experienceYears: 0,
+                    basicSalary: 0,
+                    housingAllowance: 0,
+                    transportationAllowance: 0,
+                    totalSalary: 0,
+                    children: [],
+                    isExpanded: true
+                };
+            }
+        }
+
+        // دالة لعرض الهيكل التنظيمي
+        function renderOrgChart() {
+            const orgChart = document.getElementById('orgChart');
+            if (!orgData) {
+                orgChart.innerHTML = '<div class="loading">يرجى رفع ملف Excel لعرض الهيكل التنظيمي</div>';
+                return;
+            }
+            orgChart.innerHTML = '';
+            orgChart.appendChild(createNodeElement(orgData, 0));
+        }
+
+        // دالة لإنشاء عنصر عقدة
+        function createNodeElement(node, level) {
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = `node level-${level}`;
+            nodeDiv.dataset.id = node.id;
+
+            const nodeHeader = document.createElement('div');
+            nodeHeader.className = 'node-header';
+            
+            const titleDiv = document.createElement('div');
+            titleDiv.style.display = 'flex';
+            titleDiv.style.alignItems = 'center';
+            titleDiv.style.gap = '10px';
+            
+            // إضافة أيقونة الطي/التوسيع إذا كان للعقدة أطفال
+            if (node.children && node.children.length > 0) {
+                const toggleIcon = document.createElement('span');
+                toggleIcon.className = 'toggle-icon';
+                toggleIcon.innerHTML = node.isExpanded ? '▼' : '▶';
+                toggleIcon.onclick = function(e) {
+                    e.stopPropagation();
+                    toggleNode(node.id);
+                };
+                titleDiv.appendChild(toggleIcon);
+            }
+            
+            const titleText = document.createElement('span');
+            titleText.innerHTML = `<strong>${node.name}</strong> - ${node.jobTitle}`;
+            titleDiv.appendChild(titleText);
+            
+            nodeHeader.appendChild(titleDiv);
+            nodeDiv.appendChild(nodeHeader);
+            
+            // إضافة تفاصيل الموظف ديناميكيًا
+            const nodeDetails = document.createElement('div');
+            nodeDetails.className = 'node-details';
+            
+            // القسم (يظهر فقط إذا كان موجودًا)
+            if (node.department && node.department.trim() !== '') {
+                const departmentRow = document.createElement('div');
+                departmentRow.className = 'detail-row';
+                const departmentLabel = document.createElement('div');
+                departmentLabel.className = 'detail-label';
+                departmentLabel.textContent = 'القسم:';
+                const departmentValue = document.createElement('div');
+                departmentValue.className = 'detail-value';
+                departmentValue.textContent = node.department;
+                departmentRow.appendChild(departmentLabel);
+                departmentRow.appendChild(departmentValue);
+                nodeDetails.appendChild(departmentRow);
+            }
+            
+            // الموقع (يظهر فقط إذا كان موجودًا)
+            if (node.location && node.location.trim() !== '') {
+                const locationRow = document.createElement('div');
+                locationRow.className = 'detail-row';
+                const locationLabel = document.createElement('div');
+                locationLabel.className = 'detail-label';
+                locationLabel.textContent = 'الموقع:';
+                const locationValue = document.createElement('div');
+                locationValue.className = 'detail-value';
+                locationValue.textContent = node.location;
+                locationRow.appendChild(locationLabel);
+                locationRow.appendChild(locationValue);
+                nodeDetails.appendChild(locationRow);
+            }
+            
+            // الجنسية والجنس (يظهر فقط إذا كانا موجودين)
+            if ((node.nationality && node.nationality.trim() !== '') || (node.gender && node.gender.trim() !== '')) {
+                const nationalityRow = document.createElement('div');
+                nationalityRow.className = 'detail-row';
+                const nationalityLabel = document.createElement('div');
+                nationalityLabel.className = 'detail-label';
+                nationalityLabel.textContent = 'الجنسية/الجنس:';
+                const nationalityValue = document.createElement('div');
+                nationalityValue.className = 'detail-value';
+                let nationalityText = '';
+                if (node.nationality && node.nationality.trim() !== '') {
+                    nationalityText += node.nationality;
+                }
+                if (node.gender && node.gender.trim() !== '') {
+                    nationalityText += nationalityText ? ` / ${node.gender}` : node.gender;
+                }
+                nationalityValue.textContent = nationalityText;
+                nationalityRow.appendChild(nationalityLabel);
+                nationalityRow.appendChild(nationalityValue);
+                nodeDetails.appendChild(nationalityRow);
+            }
+            
+            // تاريخ الانضمام وسنوات الخبرة (يظهر فقط إذا كانا موجودين)
+            if ((node.joinDate && node.joinDate.trim() !== '') || (node.experience && node.experience.trim() !== '')) {
+                const experienceRow = document.createElement('div');
+                experienceRow.className = 'detail-row';
+                const experienceLabel = document.createElement('div');
+                experienceLabel.className = 'detail-label';
+                experienceLabel.textContent = 'الخبرة:';
+                const experienceValue = document.createElement('div');
+                experienceValue.className = 'detail-value';
+                let experienceText = '';
+                if (node.experience && node.experience.trim() !== '') {
+                    experienceText = node.experience;
+                } else if (node.joinDate && node.joinDate.trim() !== '') {
+                    experienceText = `منذ ${node.joinDate}`;
+                }
+                experienceValue.textContent = experienceText;
+                experienceRow.appendChild(experienceLabel);
+                experienceRow.appendChild(experienceValue);
+                nodeDetails.appendChild(experienceRow);
+            }
+            
+            // الراتب الإجمالي (يظهر فقط إذا كان أكبر من 0)
+            if (node.totalSalary > 0) {
+                const salaryDiv = document.createElement('div');
+                salaryDiv.className = 'salary-highlight';
+                salaryDiv.innerHTML = `الراتب الإجمالي: <strong>${node.totalSalary.toLocaleString()} ريال</strong>`;
+                nodeDetails.appendChild(salaryDiv);
+            }
+            
+            nodeDiv.appendChild(nodeDetails);
+            
+            if (node.children && node.children.length > 0) {
+                const childrenDiv = document.createElement('div');
+                childrenDiv.className = `children ${node.isExpanded ? '' : 'hidden'}`;
+                
+                // فرز الأطفال أبجديًا حسب الاسم
+                const sortedChildren = [...node.children].sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+                
+                sortedChildren.forEach(child => {
+                    childrenDiv.appendChild(createNodeElement(child, level + 1));
+                });
+                
+                nodeDiv.appendChild(childrenDiv);
+            }
+            
+            return nodeDiv;
+        }
+
+        // دالة للطي أو التوسيع
+        function toggleNode(nodeId) {
+            function findAndToggle(node, targetId) {
+                if (node.id === targetId) {
+                    node.isExpanded = !node.isExpanded;
+                    return true;
+                }
+                
+                if (node.children) {
+                    for (let child of node.children) {
+                        if (findAndToggle(child, targetId)) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            }
+            
+            findAndToggle(orgData, nodeId);
+            renderOrgChart();
+        }
+
+        // دالة للطي الكل
+        function collapseAll() {
+            function collapseNode(node) {
+                node.isExpanded = false;
+                if (node.children) {
+                    node.children.forEach(child => collapseNode(child));
+                }
+            }
+            
+            if (orgData) {
+                collapseNode(orgData);
+                isAllExpanded = false;
+                renderOrgChart();
+            }
+        }
+
+        // دالة للتوسيع الكل
+        function expandAll() {
+            function expandNode(node) {
+                node.isExpanded = true;
+                if (node.children) {
+                    node.children.forEach(child => expandNode(child));
+                }
+            }
+            
+            if (orgData) {
+                expandNode(orgData);
+                isAllExpanded = true;
+                renderOrgChart();
+            }
+        }
+
+        // دالة لتحديث إحصائيات الهيكل
+        function updateOrgStats() {
+            if (!orgData) return;
+            
+            // حساب إجمالي الموظفين
+            function countEmployees(node) {
+                let count = 1; // العد يشمل العقدة الحالية
+                if (node.children) {
+                    node.children.forEach(child => {
+                        count += countEmployees(child);
+                    });
+                }
+                return count;
+            }
+            
+            // حساب أقصى عمق
+            function getMaxDepth(node, currentDepth = 0) {
+                let maxDepth = currentDepth;
+                if (node.children) {
+                    node.children.forEach(child => {
+                        const childDepth = getMaxDepth(child, currentDepth + 1);
+                        if (childDepth > maxDepth) {
+                            maxDepth = childDepth;
+                        }
+                    });
+                }
+                return maxDepth;
+            }
+            
+            // حساب عدد الموظفين في المستوى الأعلى (الأطفال المباشرين للجذر)
+            const topLevelCount = orgData.children ? orgData.children.length : 0;
+            const totalCount = countEmployees(orgData);
+            const totalLevels = getMaxDepth(orgData) + 1;
+            
+            // تحديث الإحصائيات
+            const orgStatsDiv = document.getElementById('orgStats');
+            orgStatsDiv.innerHTML = '';
+            
+            // إضافة الإحصائيات ديناميكيًا
+            const stats = [
+                {label: 'إجمالي الموظفين', value: totalCount},
+                {label: 'عدد المستويات', value: totalLevels},
+                {label: 'الموظفين في المستوى الأعلى', value: topLevelCount}
+            ];
+            
+            stats.forEach(stat => {
+                const statItem = document.createElement('div');
+                statItem.className = 'stat-item';
+                statItem.innerHTML = `
+                    <div class="stat-number">${stat.value}</div>
+                    <div class="stat-label">${stat.label}</div>
+                `;
+                orgStatsDiv.appendChild(statItem);
+            });
+        }
+
+        // دالة للبحث في الهيكل التنظيمي
+        function searchOrgChart() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            if (!searchTerm) {
+                renderOrgChart();
+                return;
+            }
+            
+            function searchNode(node, term) {
+                if (node.name.toLowerCase().includes(term) || 
+                    node.jobTitle.toLowerCase().includes(term) ||
+                    (node.department && node.department.toLowerCase().includes(term)) ||
+                    (node.location && node.location.toLowerCase().includes(term))) {
+                    return true;
+                }
+                
+                if (node.children) {
+                    for (let child of node.children) {
+                        if (searchNode(child, term)) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            }
+            
+            function filterNode(node, term) {
+                if (searchNode(node, term)) {
+                    const filteredNode = {...node};
+                    if (filteredNode.children) {
+                        filteredNode.children = filteredNode.children
+                            .map(child => filterNode(child, term))
+                            .filter(child => child !== null);
+                    }
+                    return filteredNode;
+                }
+                return null;
+            }
+            
+            const filteredData = filterNode(orgData, searchTerm);
+            if (filteredData) {
+                const orgChart = document.getElementById('orgChart');
+                orgChart.innerHTML = '';
+                orgChart.appendChild(createNodeElement(filteredData, 0));
+            } else {
+                document.getElementById('orgChart').innerHTML = '<div style="text-align: center; padding: 20px;">لا توجد نتائج مطابقة للبحث</div>';
+            }
+        }
+        
+        // دالة لتحديث التحليلات
+        function updateAnalysis() {
+            if (employees.length === 0) return;
+            
+            // التحليل الديموغرافي
+            updateDemographicsAnalysis();
+            
+            // تحليل الأقسام
+            updateDepartmentsAnalysis();
+            
+            // تحليل الرواتب
+            updateSalariesAnalysis();
+            
+            // تحليل الخبرة
+            updateExperienceAnalysis();
+        }
+        
+        // التحليل الديموغرافي
+        function updateDemographicsAnalysis() {
+            // عدد الموظفين حسب الجنس
+            const maleCount = employees.filter(emp => emp.gender === 'ذكر').length;
+            const femaleCount = employees.filter(emp => emp.gender === 'أنثى').length;
+            const totalCount = employees.length;
+            
+            // تحديث الإحصائيات
+            const demographicsStatsDiv = document.getElementById('demographicsStats');
+            demographicsStatsDiv.innerHTML = '';
+            
+            const stats = [
+                {label: 'إجمالي عدد الموظفين', value: totalCount},
+                {label: 'عدد الموظفين الذكور', value: maleCount},
+                {label: 'عدد الموظفات الإناث', value: femaleCount},
+                {label: 'نسبة الذكور', value: `${((maleCount / totalCount) * 100).toFixed(1)}%`},
+                {label: 'نسبة الإناث', value: `${((femaleCount / totalCount) * 100).toFixed(1)}%`}
+            ];
+            
+            stats.forEach(stat => {
+                const statItem = document.createElement('div');
+                statItem.className = 'stat-item';
+                statItem.innerHTML = `
+                    <div class="stat-number">${stat.value}</div>
+                    <div class="stat-label">${stat.label}</div>
+                `;
+                demographicsStatsDiv.appendChild(statItem);
+            });
+            
+            // التوزيع حسب الجنسية
+            const nationalityMap = {};
+            employees.forEach(emp => {
+                if (emp.nationality && emp.nationality.trim() !== '') {
+                    nationalityMap[emp.nationality] = (nationalityMap[emp.nationality] || 0) + 1;
+                }
+            });
+            
+            // فرز الجنسيات حسب العدد
+            const sortedNationalities = Object.entries(nationalityMap).sort((a, b) => b[1] - a[1]);
+            
+            // تحديث جدول الجنسية
+            const nationalityTableBody = document.getElementById('nationalityTableBody');
+            nationalityTableBody.innerHTML = '';
+            
+            if (sortedNationalities.length === 0) {
+                nationalityTableBody.innerHTML = '<tr><td colspan="3" class="no-data">لا توجد بيانات عن الجنسية</td></tr>';
+                return;
+            }
+            
+            sortedNationalities.forEach(([nationality, count]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${nationality}</td>
+                    <td>${count}</td>
+                    <td>${((count / totalCount) * 100).toFixed(1)}%</td>
+                `;
+                nationalityTableBody.appendChild(row);
+            });
+        }
+        
+        // تحليل الأقسام
+        function updateDepartmentsAnalysis() {
+            // تجميع الموظفين حسب القسم
+            const departmentMap = {};
+            employees.forEach(emp => {
+                if (emp.department && emp.department.trim() !== '') {
+                    if (!departmentMap[emp.department]) {
+                        departmentMap[emp.department] = {
+                            count: 0,
+                            employees: []
+                        };
+                    }
+                    departmentMap[emp.department].count++;
+                    departmentMap[emp.department].employees.push(emp);
+                }
+            });
+            
+            // عدد الأقسام
+            const departmentCount = Object.keys(departmentMap).length;
+            
+            // أكبر وأصغر قسم
+            let largestDepartment = '';
+            let smallestDepartment = '';
+            let largestCount = 0;
+            let smallestCount = Infinity;
+            
+            for (const [dept, data] of Object.entries(departmentMap)) {
+                if (data.count > largestCount) {
+                    largestCount = data.count;
+                    largestDepartment = dept;
+                }
+                if (data.count < smallestCount) {
+                    smallestCount = data.count;
+                    smallestDepartment = dept;
+                }
+            }
+            
+            // تحديث الإحصائيات
+            const departmentsStatsDiv = document.getElementById('departmentsStats');
+            departmentsStatsDiv.innerHTML = '';
+            
+            const stats = [
+                {label: 'عدد الأقسام', value: departmentCount},
+                {label: 'أكبر قسم', value: largestDepartment || 'غير محدد'},
+                {label: 'عدد موظفي أكبر قسم', value: largestCount},
+                {label: 'أصغر قسم', value: smallestDepartment || 'غير محدد'},
+                {label: 'عدد موظفي أصغر قسم', value: smallestCount === Infinity ? 0 : smallestCount}
+            ];
+            
+            stats.forEach(stat => {
+                const statItem = document.createElement('div');
+                statItem.className = 'stat-item';
+                statItem.innerHTML = `
+                    <div class="stat-number">${stat.value}</div>
+                    <div class="stat-label">${stat.label}</div>
+                `;
+                departmentsStatsDiv.appendChild(statItem);
+            });
+            
+            // فرز الأقسام حسب العدد
+            const sortedDepartments = Object.entries(departmentMap).sort((a, b) => b[1].count - a[1].count);
+            
+            // تحديث جدول الأقسام
+            const departmentTableBody = document.getElementById('departmentTableBody');
+            departmentTableBody.innerHTML = '';
+            
+            if (sortedDepartments.length === 0) {
+                departmentTableBody.innerHTML = '<tr><td colspan="3" class="no-data">لا توجد بيانات عن الأقسام</td></tr>';
+                return;
+            }
+            
+            const totalCount = employees.length;
+            
+            sortedDepartments.forEach(([department, data]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${department}</td>
+                    <td>${data.count}</td>
+                    <td>${((data.count / totalCount) * 100).toFixed(1)}%</td>
+                `;
+                departmentTableBody.appendChild(row);
+            });
+        }
+        
+        // تحليل الرواتب
+        function updateSalariesAnalysis() {
+            // الإحصائيات الأساسية للرواتب
+            const totalSalaries = employees.reduce((sum, emp) => sum + emp.totalSalary, 0);
+            const highestSalary = Math.max(...employees.map(emp => emp.totalSalary));
+            const lowestSalary = Math.min(...employees.map(emp => emp.totalSalary));
+            const averageSalary = totalSalaries / employees.length;
+            
+            // تحديث الإحصائيات
+            const salariesStatsDiv = document.getElementById('salariesStats');
+            salariesStatsDiv.innerHTML = '';
+            
+            const stats = [
+                {label: 'إجمالي رواتب الموظفين', value: `${totalSalaries.toLocaleString()} ريال`},
+                {label: 'أعلى راتب', value: `${highestSalary.toLocaleString()} ريال`},
+                {label: 'أدنى راتب', value: `${lowestSalary.toLocaleString()} ريال`},
+                {label: 'متوسط الراتب', value: `${Math.round(averageSalary).toLocaleString()} ريال`}
+            ];
+            
+            stats.forEach(stat => {
+                const statItem = document.createElement('div');
+                statItem.className = 'stat-item';
+                statItem.innerHTML = `
+                    <div class="stat-number">${stat.value}</div>
+                    <div class="stat-label">${stat.label}</div>
+                `;
+                salariesStatsDiv.appendChild(statItem);
+            });
+            
+            // تحليل الرواتب حسب الأقسام
+            const departmentMap = {};
+            employees.forEach(emp => {
+                if (emp.department && emp.department.trim() !== '') {
+                    if (!departmentMap[emp.department]) {
+                        departmentMap[emp.department] = {
+                            totalSalary: 0,
+                            count: 0,
+                            salaries: []
+                        };
+                    }
+                    departmentMap[emp.department].totalSalary += emp.totalSalary;
+                    departmentMap[emp.department].count++;
+                    departmentMap[emp.department].salaries.push(emp.totalSalary);
+                }
+            });
+            
+            // فرز الأقسام حسب إجمالي الرواتب
+            const sortedDepartments = Object.entries(departmentMap).sort((a, b) => b[1].totalSalary - a[1].totalSalary);
+            
+            // تحديث جدول الرواتب حسب الأقسام
+            const salaryDepartmentTableBody = document.getElementById('salaryDepartmentTableBody');
+            salaryDepartmentTableBody.innerHTML = '';
+            
+            if (sortedDepartments.length === 0) {
+                salaryDepartmentTableBody.innerHTML = '<tr><td colspan="3" class="no-data">لا توجد بيانات عن الرواتب حسب الأقسام</td></tr>';
+                return;
+            }
+            
+            sortedDepartments.forEach(([department, data]) => {
+                const avgSalary = data.totalSalary / data.count;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${department}</td>
+                    <td>${data.totalSalary.toLocaleString()} ريال</td>
+                    <td>${Math.round(avgSalary).toLocaleString()} ريال</td>
+                `;
+                salaryDepartmentTableBody.appendChild(row);
+            });
+        }
+        
+        // تحليل الخبرة
+        function updateExperienceAnalysis() {
+            // الإحصائيات الأساسية للخبرة
+            const totalExperience = employees.reduce((sum, emp) => sum + emp.experienceYears, 0);
+            const averageExperience = totalExperience / employees.length;
+            const maxExperience = Math.max(...employees.map(emp => emp.experienceYears));
+            const minExperience = Math.min(...employees.map(emp => emp.experienceYears));
+            
+            // تحديث الإحصائيات
+            const experienceStatsDiv = document.getElementById('experienceStats');
+            experienceStatsDiv.innerHTML = '';
+            
+            const stats = [
+                {label: 'متوسط سنوات الخبرة', value: `${averageExperience.toFixed(1)} سنة`},
+                {label: 'أعلى سنوات خبرة', value: `${maxExperience.toFixed(1)} سنة`},
+                {label: 'أقل سنوات خبرة', value: `${minExperience.toFixed(1)} سنة`}
+            ];
+            
+            stats.forEach(stat => {
+                const statItem = document.createElement('div');
+                statItem.className = 'stat-item';
+                statItem.innerHTML = `
+                    <div class="stat-number">${stat.value}</div>
+                    <div class="stat-label">${stat.label}</div>
+                `;
+                experienceStatsDiv.appendChild(statItem);
+            });
+            
+            // تحليل الخبرة حسب الأقسام
+            const departmentMap = {};
+            employees.forEach(emp => {
+                if (emp.department && emp.department.trim() !== '') {
+                    if (!departmentMap[emp.department]) {
+                        departmentMap[emp.department] = {
+                            totalExperience: 0,
+                            count: 0,
+                            experiences: []
+                        };
+                    }
+                    departmentMap[emp.department].totalExperience += emp.experienceYears;
+                    departmentMap[emp.department].count++;
+                    departmentMap[emp.department].experiences.push(emp.experienceYears);
+                }
+            });
+            
+            // فرز الأقسام حسب متوسط الخبرة
+            const sortedDepartments = Object.entries(departmentMap).sort((a, b) => {
+                const avgA = a[1].totalExperience / a[1].count;
+                const avgB = b[1].totalExperience / b[1].count;
+                return avgB - avgA;
+            });
+            
+            // تحديث جدول الخبرة حسب الأقسام
+            const experienceDepartmentTableBody = document.getElementById('experienceDepartmentTableBody');
+            experienceDepartmentTableBody.innerHTML = '';
+            
+            if (sortedDepartments.length === 0) {
+                experienceDepartmentTableBody.innerHTML = '<tr><td colspan="3" class="no-data">لا توجد بيانات عن الخبرة حسب الأقسام</td></tr>';
+                return;
+            }
+            
+            sortedDepartments.forEach(([department, data]) => {
+                const avgExperience = data.totalExperience / data.count;
+                const maxExperience = Math.max(...data.experiences);
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${department}</td>
+                    <td>${avgExperience.toFixed(1)} سنة</td>
+                    <td>${maxExperience.toFixed(1)} سنة</td>
+                `;
+                experienceDepartmentTableBody.appendChild(row);
+            });
+        }
+        
+        // دالة لتوليد معرف فريد
+        function generateId() {
+            return Date.now().toString() + Math.floor(Math.random() * 1000).toString();
+        }
+        
+        // دالة لعرض الرسائل
+        function showMessage(message, type) {
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = message;
+            statusMessage.className = `message ${type}`;
+            statusMessage.style.display = 'block';
+            
+            // إخفاء الرسالة بعد 5 ثوانٍ
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        // ربط أزرار الطي والتوسيع
+        document.getElementById('collapseAllBtn').onclick = collapseAll;
+        document.getElementById('expandAllBtn').onclick = expandAll;
+
+        // البحث عند الكتابة
+        document.getElementById('searchInput').addEventListener('input', searchOrgChart);
+
+        // تبديل بين التبويبات الرئيسية
+        document.querySelectorAll('.main-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                this.classList.add('active');
+                document.getElementById(this.getAttribute('data-tab')).classList.add('active');
+            });
+        });
+
+        // تبديل بين التبويبات الفرعية في تحليل البيانات
+        document.querySelectorAll('.tab:not(.main-tab)').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const parentTabContent = this.closest('.tab-content');
+                parentTabContent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                parentTabContent.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                this.classList.add('active');
+                parentTabContent.querySelector(`#${this.getAttribute('data-tab')}`).classList.add('active');
+            });
+        });
+        
+        // تحميل البيانات الأولية عند بدء التشغيل
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('orgChart').innerHTML = '<div class="loading">يرجى رفع ملف Excel لعرض الهيكل التنظيمي</div>';
+        });
+    </script>
+</body>
+</html>
