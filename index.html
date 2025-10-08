@@ -3,1408 +3,2146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الهيكل التنظيمي وتحليل بيانات الموظفين</title>
+    <title>الهيكل الوظيفي التفاعلي</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
     <style>
-        body {
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --border: #e2e8f0;
+            --hover: #f1f5f9;
+            --level-0: #1e40af;
+            --level-1: #3b82f6;
+            --level-2: #60a5fa;
+            --level-3: #93c5fd;
+            --level-4: #bfdbfe;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: white;
+        body {
+            background-color: #f5f7fa;
+            color: var(--dark);
+            line-height: 1.6;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 30px;
-        }
-        .upload-area {
-            border: 2px dashed #3498db;
-            padding: 30px;
-            text-align: center;
-            margin: 20px 0;
-            border-radius: 8px;
-            cursor: pointer;
-            background-color: #f8f9fa;
-        }
-        .upload-area:hover {
-            background-color: #e9ecef;
-        }
-        .org-chart {
-            overflow: auto;
-            padding: 20px 0;
-            max-height: 70vh;
-        }
-        .node {
-            margin: 10px 0;
-            padding: 15px;
-            background-color: #3498db;
-            color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        .node-header {
+        .dashboard-layout {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            margin-bottom: 5px;
         }
-        .toggle-icon {
-            cursor: pointer;
-            font-size: 18px;
-            font-weight: bold;
-            width: 20px;
+        .main-content-area {
+            flex-grow: 1;
+            padding: 30px;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .header {
             text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border);
         }
-        .children {
-            padding-right: 30px;
-            border-right: 2px dashed #bdc3c7;
-            margin-right: 15px;
-            margin-top: 10px;
-            transition: all 0.3s ease;
+        .header h1 {
+            color: var(--primary);
+            font-size: 2.2rem;
+            margin-bottom: 10px;
         }
-        .children.hidden {
+        .header p {
+            color: var(--secondary);
+            font-size: 1.1rem;
+        }
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 260px;
+            background-color: var(--dark);
+            color: var(--light);
+            height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+        }
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #334155;
+        }
+        .sidebar-header h2 {
+            font-size: 1.5rem;
+        }
+        .sidebar-nav ul {
+            list-style: none;
+        }
+        .sidebar-nav li a {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .sidebar-nav li a:hover {
+            background-color: #334155;
+            color: white;
+        }
+        .sidebar-nav li a.active {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+        }
+        .page {
             display: none;
         }
-        .level-0 {
-            background-color: #e74c3c;
-            font-size: 18px;
+        .page.active {
+            display: block;
+            animation: fadeIn 0.5s;
         }
-        .level-1 {
-            background-color: #3498db;
+        .file-upload {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
         }
-        .level-2 {
-            background-color: #2ecc71;
+        .file-input {
+            display: none;
         }
-        .level-3 {
-            background-color: #f39c12;
+        .file-label, .download-template {
+            background-color: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .level-4 {
-            background-color: #9b59b6;
+        .download-template {
+            background-color: var(--success);
         }
-        .level-5 {
-            background-color: #1abc9c;
+        .file-label:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+        .download-template:hover {
+            background-color: #059669;
+            transform: translateY(-2px);
+        }
+        .file-name {
+            color: var(--secondary);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+        }
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        .alert-success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .alert-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .search-box {
+            margin-bottom: 25px;
+            position: relative;
+        }
+        .search-input {
+            width: 100%;
+            padding: 14px 20px;
+            padding-right: 50px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .search-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--secondary);
         }
         .controls {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 20px;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
-        .search-box {
-            padding: 8px 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            width: 300px;
-            font-size: 16px;
-        }
-        .btn {
-            padding: 10px 20px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .loading {
-            text-align: center;
-            padding: 50px;
-            font-size: 18px;
-            color: #7f8c8d;
-        }
-        .stats {
+        .view-toggles {
             display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
+            gap: 10px;
         }
-        .stat-item {
-            text-align: center;
-        }
-        .stat-number {
-            font-size: 24px;
-            font-weight: bold;
-            color: #3498db;
-        }
-        .stat-label {
-            font-size: 14px;
-            color: #7f8c8d;
-        }
-        .node-details {
-            margin-top: 10px;
-            font-size: 14px;
-        }
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            padding: 5px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
-        .detail-label {
-            font-weight: bold;
-            color: #ecf0f1;
-        }
-        .detail-value {
-            color: #ffffff;
-        }
-        .salary-highlight {
-            font-size: 16px;
-            font-weight: bold;
-            color: #fff3cd;
-            background-color: #343a40;
-            padding: 5px 10px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-top: 10px;
-        }
-        .analysis-section {
-            margin: 30px 0;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .section-title {
-            color: #3498db;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .stat-card {
+        .view-toggle {
             background-color: white;
-            padding: 20px;
+            border: 2px solid var(--border);
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            text-align: center;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: right;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #3498db;
+        .view-toggle.active {
+            background-color: var(--primary);
             color: white;
-            font-weight: bold;
+            border-color: var(--primary);
         }
-        tr:nth-child(even) {
-            background-color: #f8f9fa;
+        .view-toggle:hover:not(.active) {
+            background-color: var(--hover);
+            border-color: var(--primary);
         }
-        tr:hover {
-            background-color: #e8f4fd;
+        .filter-select {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
         }
-        .chart-container {
-            height: 300px;
-            margin: 20px 0;
+        .view-toggle:hover:not(.active) {
+            background-color: var(--hover);
+            border-color: var(--primary);
+        }
+        .tree-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .tree-btn {
+            background-color: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 25px;
             position: relative;
         }
-        .progress-bar {
-            width: 100%;
-            background-color: #ecf0f1;
-            border-radius: 4px;
-            margin: 10px 0;
+        .org-section {
+            background-color: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            gap: 10px;
         }
-        .progress {
-            height: 20px;
-            background-color: #3498db;
-            border-radius: 4px;
-            text-align: center;
-            color: white;
-            font-weight: bold;
-            line-height: 20px;
+        /* عرض الهيكل الهرمي */
+        .org-chart {
+            min-height: 500px;
+            overflow: auto;
+            position: relative;
         }
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            background-color: #ecf0f1;
-            border-radius: 8px 8px 0 0;
+        .tree-node {
+            margin-bottom: 12px;
+            position: relative;
         }
-        .tab {
-            padding: 15px 25px;
-            background-color: #ecf0f1;
-            border: none;
+        .employee-card {
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 8px;
             cursor: pointer;
+            transition: all 0.3s;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .employee-card:hover {
+            background-color: var(--hover);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .employee-card.selected {
+            background-color: #e0f2fe;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+        .employee-card.level-0 {
+            border-right: 5px solid var(--level-0);
+            border-left: 5px solid var(--level-0);
+        }
+        .employee-card.level-1 {
+            border-right: 5px solid var(--level-1);
+            border-left: 5px solid var(--level-1);
+        }
+        .employee-card.level-2 {
+            border-right: 5px solid var(--level-2);
+            border-left: 5px solid var(--level-2);
+        }
+        .employee-card.level-3 {
+            border-right: 5px solid var(--level-3);
+            border-left: 5px solid var(--level-3);
+        }
+        .employee-card.level-4 {
+            border-right: 5px solid var(--level-4);
+            border-left: 5px solid var(--level-4);
+        }
+        .employee-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            justify-content: center; /* تم تغييرها من margin-left */
+            margin-left: 15px;
             font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .employee-avatar:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .employee-info {
             flex: 1;
-            text-align: center;
+        }
+        .employee-name {
+            font-weight: 700;
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+        .employee-position {
+            font-size: 0.9rem;
+            color: var(--secondary);
+        }
+        .children {
+            margin-right: 35px;
+            padding-right: 20px;
+            margin-right: 30px; /* تم تعديل الهامش */
+            border-right: 2px dashed var(--border); /* تم تغييرها من border-right */
+            padding-right: 25px; /* تم تغييرها من padding-right */
             transition: all 0.3s ease;
         }
-        .tab:hover {
-            background-color: #d6eaf8;
-        }
-        .tab.active {
-            background-color: #3498db;
-            color: white;
-        }
-        .tab-content {
+        .children.collapsed {
             display: none;
-            padding: 20px;
+        }
+        .toggle-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--secondary);
+            font-size: 1.3rem;
+            margin-left: 10px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+        .toggle-btn:hover {
+            background-color: var(--hover);
+            color: var(--primary);
+        }
+        .employee-count {
+            background-color: var(--secondary);
+            color: white;
+            border-radius: 15px;
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            margin-right: 10px;
+        }
+        /* بطاقة الموظف المنزلقة */
+        .employee-detail-card {
+            position: fixed;
+            top: 50%;
+            right: 30px;
+            transform: translateY(-50%) translateX(120%);
+            width: 380px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            z-index: 100;
+            overflow: hidden;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0;
+        }
+        .employee-detail-card.active {
+            transform: translateY(-50%) translateX(0);
+            opacity: 1;
+        }
+        .card-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+        }
+        .close-card {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.2rem;
+        }
+        .close-card:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+        .card-avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-weight: bold;
+            font-size: 2rem;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+        .card-name {
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        .card-position {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .card-body {
+            padding: 25px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .info-group {
+            margin-bottom: 20px;
+        }
+        .info-label {
+            font-weight: 600;
+            color: var(--secondary);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            text-transform: uppercase;
+            gap: 8px;
+        }
+        .info-value {
+            font-size: 1rem;
+            color: var(--dark);
+            padding: 10px 15px;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .team-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+        .team-member {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .team-member:hover {
+            background-color: var(--hover);
+        }
+        .team-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .team-info {
+            flex: 1;
+        }
+        .team-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .team-position {
+            font-size: 0.8rem;
+            color: var(--secondary);
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        .badge-primary {
+            background-color: #dbeafe;
+            color: var(--primary);
+        }
+        .badge-success {
+            background-color: #d1fae5;
+            color: var(--success);
+        }
+        .badge-warning {
+            background-color: #fef3c7;
+            color: var(--warning);
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: var(--secondary);
+        }
+        .table-view {
+            display: none;
+            width: 100%;
+            border-collapse: collapse;
             background-color: white;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
-        .tab-content.active {
-            display: block;
+        .table-view th {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px;
+            text-align: right;
+            font-weight: 600;
         }
-        .main-tabs {
+        .table-view td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        .table-view tr:last-child td {
+            border-bottom: none;
+        }
+        .table-view tr:hover {
+            background-color: var(--hover);
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            color: var(--secondary);
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            border-top: 4px solid var(--primary);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.07);
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            font-weight: 500;
+        }
+        /* صفحة تحليل البيانات */
+        .analytics-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 500px;
+            max-width: 90%;
+            height: 100%;
+            background: #f8fafc;
+            z-index: 101;
+            box-shadow: 5px 0 25px rgba(0,0,0,0.1);
+            transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: flex;
+            flex-direction: column;
+        }
+        .analytics-view.active {
+            transform: translateX(0);
+        }
+        .analytics-body {
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .analytics-view .stats-cards {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        #payroll-report-table th {
+            cursor: pointer;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
-        .main-tab {
-            font-size: 18px;
-            padding: 15px 30px;
+        .export-btn {
+            background-color: var(--success);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        .export-btn:hover {
+            background-color: #059669;
+            transform: translateY(-2px);
+        }
+        .chart-title {
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--dark);
+            text-align: center;
+        }
+        canvas {
+            max-width: 100%;
+        }
+        /* تذييل الصفحة */
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            color: var(--secondary);
+            font-size: 0.95rem;
+        }
+        .developer-info {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        /* طبقة الخلفية المعتمة */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        @media (max-width: 768px) {
+            .dashboard-layout {
+                flex-direction: column;
+            }
+            .sidebar { width: 100%; height: auto; position: static; }
+            .main-content-area { height: auto; }
+             .main-content {
+                 grid-template-columns: 1fr;
+             }
+             .summary-panel {
+                 display: none;
+             }
+        }
+    </style>
+    <style media="print">
+        body {
+            background-color: white;
+            color: black;
+        }
+         .sidebar, .header, .controls, .footer, .employee-detail-card, .overlay, .summary-panel, .analytics-view {
+            display: none !important;
+        }
+        .main-content {
+            grid-template-columns: 1fr !important;
+        }
+        .org-section {
+            box-shadow: none;
+            border: 1px solid #000;
+        }
+        .export-btn {
+            display: none !important;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto !important;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>الهيكل التنظيمي وتحليل بيانات الموظفين</h1>
-        
-        <div class="upload-area" id="uploadArea">
-            <h3>اسحب وأفلت ملف Excel هنا</h3>
-            <p>أو</p>
-            <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
-            <button class="btn" onclick="document.getElementById('fileInput').click()">اختر ملف Excel</button>
+    <div class="dashboard-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>لوحة التحكم</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="#" class="nav-link active" data-page="dashboard-page">🏠 الرئيسية</a></li>
+                <li><a href="#" class="nav-link" data-page="upload-page">📤 تحميل البيانات</a></li>
+                <li><a href="#" class="nav-link" data-page="org-chart-page">📊 الهيكل التنظيمي</a></li>
+                <li><a href="#" class="nav-link" data-page="analytics-page">📈 التحليل المالي</a></li>
+                <li><a href="#" class="nav-link" data-page="payroll-report-page">💰 تقرير الرواتب</a></li>
+                <li><a href="#" class="nav-link" data-page="tabular-analysis-page">📄 التحليل الجدولي</a></li>
+                <li><a href="#" class="nav-link" data-page="deductions-analysis-page">📉 تحليل الخصومات</a></li>
+                <li><a href="#" class="nav-link" data-page="developer-page">👨‍💻 عن المطور</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content-area">
+            <!-- Page: Dashboard -->
+            <div id="dashboard-page" class="page active">
+                <div class="header">
+                    <h1>لوحة التحكم الرئيسية</h1>
+                    <p>نظرة عامة على بيانات المؤسسة</p>
+                </div>
+                <div id="alertMessage" class="alert"></div>
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <div class="stat-value">👥</div>
+                        <div class="stat-value" id="totalEmployees">0</div>
+                        <div class="stat-label">إجمالي الموظفين</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">🏢</div>
+                        <div class="stat-value" id="totalDepartments">0</div>
+                        <div class="stat-label">عدد الأقسام</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">👨‍💼</div>
+                        <div class="stat-value" id="totalManagers">0</div>
+                        <div class="stat-label">عدد المدراء</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page: Upload -->
+            <div id="upload-page" class="page">
+                <div class="header"><h1>تحميل ملف البيانات</h1></div>
+                <div class="file-upload">
+                    <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls, .csv, .json">
+                    <label for="fileInput" class="file-label"><span>📁 اختر ملف</span></label>
+                    <button class="download-template" id="downloadTemplate"><span>📥 تحميل نموذج</span></button>
+                </div>
+                <span id="fileName" class="file-name" style="text-align: center; display: block; margin-top: -15px;">لم يتم تحميل أي ملف بعد</span>
+                <div id="loadingIndicator" class="loading" style="margin-top: 20px;">
+                    <div class="spinner"></div>
+                    <p>جاري تحميل البيانات...</p>
+                </div>
+            </div>
+
+            <!-- Page: Org Chart -->
+            <div id="org-chart-page" class="page">
+                <div class="header"><h1>الهيكل التنظيمي</h1></div>
+                <div class="search-box">
+                    <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن موظف...">
+                    <span class="search-icon">🔍</span>
+                </div>
+                <div class="controls">
+                    <div class="view-toggles">
+                        <button class="view-toggle active" data-view="hierarchy">عرض الهيكل</button>
+                        <button class="view-toggle" data-view="table">عرض الجدول</button>
+                    </div>
+                    <div class="tree-controls" id="treeControls">
+                        <button class="tree-btn" id="expandAll">➕ توسيع الكل</button>
+                        <button class="tree-btn" id="collapseAll">➖ طي الكل</button>
+                    </div>
+                </div>
+                <div class="org-section">
+                    <div class="org-chart" id="hierarchyView"><div id="orgTree"></div></div>
+                    <table class="table-view" id="tableView">
+                        <thead>
+                            <tr><th>الرقم</th><th>الاسم</th><th>القسم</th><th>المدير</th><th>المسمى الوظيفي</th></tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Page: Financial Analytics -->
+            <div id="analytics-page" class="page">
+                <div class="header"><h1>التحليل المالي</h1></div>
+                <div id="analyticsContent"></div>
+            </div>
+
+            <!-- Page: Payroll Report -->
+            <div id="payroll-report-page" class="page">
+                <div class="header"><h1>تقرير الرواتب التفصيلي</h1></div>
+                <div class="controls">
+                    <input type="text" id="payrollSearchInput" class="search-input" placeholder="بحث بالاسم أو الرقم الوظيفي..." style="flex-grow: 1;">
+                    <select id="payrollDeptFilter" class="view-toggle" style="background-color: white; color: var(--dark);">
+                        <option value="">كل الأقسام</option>
+                    </select>
+                    <select id="payrollNatFilter" class="view-toggle" style="background-color: white; color: var(--dark);">
+                        <option value="">كل الجنسيات</option>
+                    </select>
+                    <button id="resetPayrollFilters" class="tree-btn" style="background-color: var(--secondary); color: white;">إعادة تعيين</button>
+                </div>
+                <div class="org-section">
+                    <table class="table-view" id="payroll-report-table" style="display: table;">
+                        <thead></thead>
+                        <tfoot></tfoot>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Page: Tabular Analysis -->
+            <div id="tabular-analysis-page" class="page">
+                <div class="header"><h1>التحليل المالي الجدولي</h1></div>
+                <div class="controls">
+                    <select id="tabularDeptFilter" class="view-toggle" style="background-color: white; color: var(--dark);">
+                        <option value="">كل الأقسام</option>
+                    </select>
+                    <select id="tabularNatFilter" class="view-toggle" style="background-color: white; color: var(--dark);">
+                        <option value="">كل الجنسيات</option>
+                    </select>
+                    <button id="resetTabularFilters" class="tree-btn" style="background-color: var(--secondary); color: white;">إعادة تعيين</button>
+                    <button id="printTabularAnalysis" class="tree-btn" style="background-color: var(--success); color: white;">🖨️ طباعة</button>
+                </div>
+                <div id="tabularAnalysisContent"></div>
+            </div>
+
+            <!-- Page: Deductions Analysis -->
+            <div id="deductions-analysis-page" class="page">
+                <div class="header"><h1>تحليل الخصومات المالية</h1></div>
+                <div class="controls">
+                    <select id="deductionsDeptFilter" class="view-toggle" style="background-color: white; color: var(--dark);"><option value="">كل الأقسام</option></select>
+                    <select id="deductionsNatFilter" class="view-toggle" style="background-color: white; color: var(--dark);"><option value="">كل الجنسيات</option></select>
+                    <button id="resetDeductionsFilters" class="tree-btn" style="background-color: var(--secondary); color: white;">إعادة تعيين</button>
+                    <button id="printDeductionsAnalysis" class="tree-btn" style="background-color: var(--success); color: white;">🖨️ طباعة</button>
+                </div>
+                <div id="deductionsAnalysisContent"></div>
+            </div>
+
+            <!-- Page: Developer Info -->
+            <div id="developer-page" class="page">
+                <div class="header"><h1>عن المطور / About Developer</h1></div>
+                <div class="org-section" style="text-align: center;">
+                    <h2 style="color: var(--primary); margin-bottom: 20px;">محمد مبروك عطية / Mohamed Mabrouk Attia</h2>
+                    <p style="font-size: 1.2rem; color: var(--secondary); margin-bottom: 30px;">الإصدار الثاني / Version 2.0</p>
+                    
+                    <div class="info-group" style="text-align: right; max-width: 400px; margin: 0 auto;">
+                        <div class="info-label">📞 بيانات التواصل / Contact Info</div>
+                        <div class="info-value">رقم الموبايل: 0570453337</div>
+                        <div class="info-value">
+                            صفحة فيسبوك: <a href="https://www.facebook.com/mohamed.mabrouk.ghoneim" target="_blank" rel="noopener noreferrer">Mohamed Mabrouk Ghoneim</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    <div class="footer">
+        <p>تم التطوير بواسطة: <span class="developer-info">محمد مبروك عطية / Mohamed Mabrouk Attia</span></p>
+    </div>
+
+    <!-- بطاقة تفاصيل الموظف -->
+    <div class="employee-detail-card" id="employeeCard">
+        <div class="card-header">
+            <button class="close-card" id="closeCard">×</button>
+            <div class="card-avatar" id="cardAvatar">SA</div>
+            <div class="card-name" id="cardName">سالم أحمد العوضي</div>
+            <div class="card-position" id="cardPosition">العضو المنتدب</div>
         </div>
-        
-        <div class="main-tabs tabs">
-            <button class="tab main-tab active" data-tab="org-structure">الهيكل التنظيمي</button>
-            <button class="tab main-tab" data-tab="data-analysis">تحليل بيانات الموظفين</button>
-        </div>
-        
-        <div id="org-structure" class="tab-content active">
-            <div class="stats" id="orgStats" style="display: none;">
-                <div class="stat-item">
-                    <div class="stat-number" id="totalEmployees">0</div>
-                    <div class="stat-label">إجمالي الموظفين</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="totalLevels">0</div>
-                    <div class="stat-label">عدد المستويات</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="topLevelCount">0</div>
-                    <div class="stat-label">الموظفين في المستوى الأعلى</div>
-                </div>
+        <div class="card-body">
+            <div class="info-group">
+                <div class="info-label">📋 معلومات أساسية</div>
+                <div class="info-value" id="cardEmployeeId">الرقم الوظيفي: 001</div>
+                <div class="info-value" id="cardDepartment">القسم: الإدارة العليا</div>
+                <div class="info-value" id="cardManager">المدير المباشر: -</div>
             </div>
-            
-            <div class="controls">
-                <input type="text" class="search-box" placeholder="البحث عن موظف..." id="searchInput">
-                <div>
-                    <button class="btn" id="collapseAllBtn">طي الكل</button>
-                    <button class="btn" id="expandAllBtn">توسيع الكل</button>
-                </div>
+            <div class="info-group">
+                <div class="info-label">💰 بيانات مالية</div>
+                <div class="info-value" id="cardSalary">إجمالي الراتب: 35,000 ريال</div>
+                <div class="info-value" id="cardNetSalary">صافي الراتب: 32,500 ريال</div>
             </div>
-            
-            <div class="org-chart" id="orgChart">
-                <div class="loading">يرجى رفع ملف Excel لعرض الهيكل التنظيمي</div>
+            <div class="info-group">
+                <div class="info-label">📝 معلومات إضافية</div>
+                <div class="info-value" id="cardLocation">الموقع: الرياض</div>
+                <div class="info-value" id="cardNationality">الجنسية: سعودي</div>
+                <div class="info-value" id="cardHireDate">تاريخ التعيين: 2015-03-10</div>
+                <div class="info-value" id="cardEmail">البريد: s.alawadi@company.com</div>
+                <div class="info-value" id="cardPhone">الهاتف: +966500000001</div>
             </div>
-        </div>
-        
-        <div id="data-analysis" class="tab-content">
-            <div class="tabs">
-                <button class="tab active" data-tab="demographics">التحليل الديموغرافي</button>
-                <button class="tab" data-tab="departments">تحليل الأقسام</button>
-                <button class="tab" data-tab="salaries">تحليل الرواتب</button>
-                <button class="tab" data-tab="experience">تحليل الخبرة</button>
-            </div>
-            
-            <div id="demographics" class="tab-content active">
-                <div class="analysis-section">
-                    <h2 class="section-title">التحليل الديموغرافي</h2>
-                    
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">إجمالي عدد الموظفين</div>
-                            <div class="stat-number" id="demoTotalEmployees">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">عدد الموظفين الذكور</div>
-                            <div class="stat-number" id="maleEmployees">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">عدد الموظفات الإناث</div>
-                            <div class="stat-number" id="femaleEmployees">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">نسبة الذكور</div>
-                            <div class="stat-number" id="malePercentage">0%</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">نسبة الإناث</div>
-                            <div class="stat-number" id="femalePercentage">0%</div>
-                        </div>
-                    </div>
-                    
-                    <h3>التوزيع حسب الجنسية</h3>
-                    <table id="nationalityTable">
-                        <thead>
-                            <tr>
-                                <th>الجنسية</th>
-                                <th>عدد الموظفين</th>
-                                <th>النسبة المئوية</th>
-                            </tr>
-                        </thead>
-                        <tbody id="nationalityTableBody">
-                            </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <div id="departments" class="tab-content">
-                <div class="analysis-section">
-                    <h2 class="section-title">تحليل الأقسام</h2>
-                    
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">عدد الأقسام</div>
-                            <div class="stat-number" id="totalDepartments">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">أكبر قسم</div>
-                            <div class="stat-number" id="largestDepartment">-</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">عدد موظفي أكبر قسم</div>
-                            <div class="stat-number" id="largestDepartmentCount">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">أصغر قسم</div>
-                            <div class="stat-number" id="smallestDepartment">-</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">عدد موظفي أصغر قسم</div>
-                            <div class="stat-number" id="smallestDepartmentCount">0</div>
-                        </div>
-                    </div>
-                    
-                    <h3>جدول توزيع الموظفين حسب الأقسام</h3>
-                    <table id="departmentTable">
-                        <thead>
-                            <tr>
-                                <th>اسم القسم</th>
-                                <th>عدد الموظفين</th>
-                                <th>النسبة المئوية</th>
-                                <th>عدد الذكور</th>
-                                <th>عدد الإناث</th>
-                            </tr>
-                        </thead>
-                        <tbody id="departmentTableBody">
-                            </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <div id="salaries" class="tab-content">
-                <div class="analysis-section">
-                    <h2 class="section-title">تحليل الرواتب</h2>
-                    
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">إجمالي رواتب الموظفين</div>
-                            <div class="stat-number" id="totalSalaries">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">أعلى راتب</div>
-                            <div class="stat-number" id="highestSalary">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">أدنى راتب</div>
-                            <div class="stat-number" id="lowestSalary">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">متوسط الراتب</div>
-                            <div class="stat-number" id="averageSalary">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">الراتب الأكثر تكراراً</div>
-                            <div class="stat-number" id="modeSalary">0</div>
-                        </div>
-                    </div>
-                    
-                    <h3>تحليل الرواتب حسب الأقسام</h3>
-                    <table id="salaryDepartmentTable">
-                        <thead>
-                            <tr>
-                                <th>اسم القسم</th>
-                                <th>إجمالي الرواتب</th>
-                                <th>متوسط الراتب</th>
-                                <th>أعلى راتب</th>
-                                <th>أدنى راتب</th>
-                                <th>عدد الموظفين</th>
-                            </tr>
-                        </thead>
-                        <tbody id="salaryDepartmentTableBody">
-                            </tbody>
-                    </table>
-                    
-                    <h3>تحليل الرواتب حسب الجنس</h3>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">متوسط راتب الذكور</div>
-                            <div class="stat-number" id="maleAverageSalary">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">متوسط راتب الإناث</div>
-                            <div class="stat-number" id="femaleAverageSalary">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">إجمالي رواتب الذكور</div>
-                            <div class="stat-number" id="maleTotalSalary">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">إجمالي رواتب الإناث</div>
-                            <div class="stat-number" id="femaleTotalSalary">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">الفرق في المتوسط</div>
-                            <div class="stat-number" id="salaryDifference">0</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="experience" class="tab-content">
-                <div class="analysis-section">
-                    <h2 class="section-title">تحليل الخبرة</h2>
-                    
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">متوسط سنوات الخبرة</div>
-                            <div class="stat-number" id="averageExperience">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">أعلى سنوات خبرة</div>
-                            <div class="stat-number" id="maxExperience">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">أقل سنوات خبرة</div>
-                            <div class="stat-number" id="minExperience">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">عدد الموظفين بأكثر من 10 سنوات خبرة</div>
-                            <div class="stat-number" id="experiencedEmployees">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">نسبة الموظفين بأكثر من 10 سنوات خبرة</div>
-                            <div class="stat-number" id="experiencedPercentage">0%</div>
-                        </div>
-                    </div>
-                    
-                    <h3>تحليل الخبرة حسب الأقسام</h3>
-                    <table id="experienceDepartmentTable">
-                        <thead>
-                            <tr>
-                                <th>اسم القسم</th>
-                                <th>متوسط سنوات الخبرة</th>
-                                <th>أعلى سنوات خبرة</th>
-                                <th>أقل سنوات خبرة</th>
-                                <th>عدد الموظفين</th>
-                            </tr>
-                        </thead>
-                        <tbody id="experienceDepartmentTableBody">
-                            </tbody>
-                    </table>
-                    
-                    <h3>تحليل الخبرة حسب الجنس</h3>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">متوسط خبرة الذكور</div>
-                            <div class="stat-number" id="maleAverageExperience">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">متوسط خبرة الإناث</div>
-                            <div class="stat-number" id="femaleAverageExperience">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">أعلى خبرة للذكور</div>
-                            <div class="stat-number" id="maleMaxExperience">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">أعلى خبرة للإناث</div>
-                            <div class="stat-number" id="femaleMaxExperience">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">أقل خبرة للذكور</div>
-                            <div class="stat-number" id="maleMinExperience">0</div>
-                        </div>
-                    </div>
+            <div class="team-section" id="teamSection">
+                <div class="info-label">👥 فريق العمل</div>
+                <div id="teamMembers">
                 </div>
             </div>
         </div>
     </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <div class="overlay" id="overlay"></div>
     <script>
-        // المتغيرات العامة
-        let employees = [];
-        let orgData = null;
-        let isAllExpanded = true;
+        // لا توجد بيانات افتراضية (يبدأ فارغًا)
+        let employeesData = [];
+        let selectedEmployee = null;
+        let currentTreeData = [];
+        let expandedState = {};
+        let charts = [];
 
-        // معالجة رفع الملف
-        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-        
-        // معالجة السحب والإفلات
-        const uploadArea = document.getElementById('uploadArea');
-        
-        uploadArea.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            uploadArea.style.backgroundColor = '#e9ecef';
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            showPage('dashboard-page');
         });
-        
-        uploadArea.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            uploadArea.style.backgroundColor = '#f8f9fa';
-        });
-        
-        uploadArea.addEventListener('drop', function(e) {
-            e.preventDefault();
-            uploadArea.style.backgroundColor = '#f8f9fa';
-            
-            if (e.dataTransfer.files.length > 0) {
-                handleFile(e.dataTransfer.files[0]);
-            }
-        });
-        
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                handleFile(file);
-            }
-        }
-        
-        function handleFile(file) {
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    // الحصول على أول ورقة في الملف
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    
-                    // تحويل البيانات إلى JSON
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                    
-                    // معالجة البيانات
-                    processExcelData(jsonData);
-                    
-                    // عرض رسالة نجاح
-                    alert('تم تحميل الملف بنجاح!');
-                    
-                    // تحديث التحليلات
-                    updateOrgStructure();
-                    updateAnalysis();
-                    
-                } catch (error) {
-                    console.error('خطأ في معالجة الملف:', error);
-                    alert('حدث خطأ أثناء معالجة الملف. يرجى التأكد من أن الملف بصيغة Excel وصحيح.');
-                }
-            };
-            
-            reader.readAsArrayBuffer(file);
-        }
-        
-        function processExcelData(data) {
-            // البحث عن رؤوس الأعمدة
-            let headers = [];
-            let startRow = 0;
-            
-            for (let i = 0; i < data.length; i++) {
-                if (Array.isArray(data[i]) && data[i].length > 0) {
-                    // البحث عن الصف الذي يحتوي على "الرقم الوظيفي" و"الاسم كاملاً باللغة العربية" وغيرها
-                    if (data[i].some(cell => typeof cell === 'string' && cell.includes('الرقم الوظيفي')) &&
-                        data[i].some(cell => typeof cell === 'string' && cell.includes('الاسم كاملاً باللغة العربية'))) {
-                        headers = data[i].filter(cell => cell !== undefined && cell !== null);
-                        startRow = i + 1;
-                        break;
-                    }
-                }
-            }
-            
-            if (headers.length === 0) {
-                throw new Error('لم يتم العثور على رؤوس الأعمدة المناسبة في ملف Excel');
-            }
-            
-            // تعيين فهرس كل عمود
-            const columnIndices = {};
-            headers.forEach((header, index) => {
-                if (typeof header === 'string') {
-                    if (header.includes('الرقم الوظيفي')) columnIndices.id = index;
-                    else if (header.includes('الاسم كاملاً باللغة العربية')) columnIndices.name = index;
-                    else if (header.includes('المسمى الوظيفي')) columnIndices.jobTitle = index;
-                    else if (header.includes('المدير المباشر')) columnIndices.directManager = index;
-                    else if (header.includes('الجنسية')) columnIndices.nationality = index;
-                    else if (header.includes('الجنس')) columnIndices.gender = index;
-                    else if (header.includes('القسم')) columnIndices.department = index;
-                    else if (header.includes('الموقع')) columnIndices.location = index;
-                    else if (header.includes('تاريخ الانضمام')) columnIndices.joinDate = index;
-                    else if (header.includes('سنوات خبرة العمل')) columnIndices.experience = index;
-                    else if (header.includes('الراتب الأساسي')) columnIndices.basicSalary = index;
-                    else if (header.includes('بدل سكن')) columnIndices.housingAllowance = index;
-                    else if (header.includes('بدل مواصلات')) columnIndices.transportationAllowance = index;
-                    else if (header.includes('كامل الراتب')) columnIndices.totalSalary = index;
-                }
-            });
-            
-            // التحقق من وجود الأعمدة الأساسية
-            if (!columnIndices.name || !columnIndices.jobTitle) {
-                throw new Error('لم يتم العثور على الأعمدة الأساسية (الاسم، المسمى الوظيفي) في ملف Excel');
-            }
-            
-            // معالجة بيانات الموظفين
-            employees = [];
-            for (let i = startRow; i < data.length; i++) {
-                const row = data[i];
-                if (!Array.isArray(row) || row.length === 0) continue;
-                
-                // تخطي الصفوف الفارغة أو التي لا تحتوي على اسم الموظف
-                if (!row[columnIndices.name] || row[columnIndices.name] === '') continue;
-                
-                // استخراج سنوات الخبرة كرقم
-                let experienceYears = 0;
-                if (row[columnIndices.experience]) {
-                    const experienceText = row[columnIndices.experience].toString();
-                    // استخراج الرقم من النص (مثال: "3 سنة، 6 شهر، 13 يوم")
-                    const yearsMatch = experienceText.match(/(\d+)\s*سنة/);
-                    const monthsMatch = experienceText.match(/(\d+)\s*شهر/);
-                    if (yearsMatch) {
-                        experienceYears = parseInt(yearsMatch[1]);
-                        if (monthsMatch) {
-                            experienceYears += parseInt(monthsMatch[1]) / 12;
-                        }
-                    }
-                }
-                
-                const employee = {
-                    id: row[columnIndices.id] ? row[columnIndices.id].toString() : 'emp_' + Date.now() + '_' + i,
-                    name: row[columnIndices.name] ? row[columnIndices.name].toString() : '',
-                    jobTitle: row[columnIndices.jobTitle] ? row[columnIndices.jobTitle].toString() : '',
-                    directManager: row[columnIndices.directManager] ? row[columnIndices.directManager].toString() : '',
-                    nationality: row[columnIndices.nationality] ? row[columnIndices.nationality].toString() : 'غير محدد',
-                    gender: row[columnIndices.gender] ? row[columnIndices.gender].toString() : 'غير محدد',
-                    department: row[columnIndices.department] ? row[columnIndices.department].toString() : 'غير محدد',
-                    location: row[columnIndices.location] ? row[columnIndices.location].toString() : 'غير محدد',
-                    joinDate: row[columnIndices.joinDate] ? formatDate(row[columnIndices.joinDate]) : '',
-                    experience: row[columnIndices.experience] ? row[columnIndices.experience].toString() : '',
-                    experienceYears: experienceYears,
-                    basicSalary: row[columnIndices.basicSalary] ? parseFloat(row[columnIndices.basicSalary]) || 0 : 0,
-                    housingAllowance: row[columnIndices.housingAllowance] ? parseFloat(row[columnIndices.housingAllowance]) || 0 : 0,
-                    transportationAllowance: row[columnIndices.transportationAllowance] ? parseFloat(row[columnIndices.transportationAllowance]) || 0 : 0,
-                    totalSalary: row[columnIndices.totalSalary] ? parseFloat(row[columnIndices.totalSalary]) || 0 : 0,
-                    children: [],
-                    isExpanded: true
-                };
-                
-                // إذا لم يتم تحديد الراتب الإجمالي، نحسبه
-                if (employee.totalSalary === 0) {
-                    employee.totalSalary = employee.basicSalary + employee.housingAllowance + employee.transportationAllowance;
-                }
-                
-                employees.push(employee);
-            }
-        }
-        
-        function formatDate(date) {
-            if (typeof date === 'string') {
-                return date;
-            } else if (date instanceof Date) {
-                return date.toISOString().split('T')[0];
-            } else {
-                // محاولة تحليل التاريخ إذا كان رقمًا (تنسيق Excel)
-                try {
-                    const excelDate = new Date(Math.round((date - 25569) * 86400 * 1000));
-                    return excelDate.toISOString().split('T')[0];
-                } catch (e) {
-                    return '';
-                }
-            }
-        }
-        
-        // دالة لتحديث الهيكل التنظيمي
-        function updateOrgStructure() {
-            if (employees.length === 0) return;
-            
-            // بناء الهيكل التنظيمي
-            buildOrgStructure();
-            updateOrgStats();
-            renderOrgChart();
-            
-            // عرض إحصائيات الهيكل
-            document.getElementById('orgStats').style.display = 'flex';
-        }
-        
-        // بناء الهيكل التنظيمي من البيانات
-        function buildOrgStructure() {
-            // إنشاء خريطة للموظفين
-            const employeeMap = new Map();
-            employees.forEach(emp => {
-                // إذا لم يكن هناك ID، ننشئ واحدًا
-                if (!emp.id) {
-                    emp.id = generateId();
-                }
-                employeeMap.set(emp.id, {...emp, children: [], isExpanded: true});
-            });
-            
-            // ربط الموظفين بمديريهم
-            employees.forEach(emp => {
-                if (emp.directManager && emp.directManager.trim() !== '' && emp.directManager !== 'ــــــــــــــــــــــــــــــــــــــــــــــ') {
-                    // البحث عن المدير بالاسم
-                    const manager = employees.find(m => m.name === emp.directManager);
-                    if (manager) {
-                        const managerNode = employeeMap.get(manager.id);
-                        if (managerNode) {
-                            managerNode.children.push(employeeMap.get(emp.id));
-                        }
-                    }
-                }
-            });
-            
-            // العثور على الجذر (الموظفين الذين ليس لديهم مدير أو مديرهم فارغ)
-            const rootEmployees = employees.filter(emp => 
-                !emp.directManager || 
-                emp.directManager.trim() === '' || 
-                emp.directManager === 'ــــــــــــــــــــــــــــــــــــــــــــــ'
-            );
-            
-            if (rootEmployees.length > 0) {
-                orgData = employeeMap.get(rootEmployees[0].id);
-            } else if (employees.length > 0) {
-                // إذا لم يتم العثور على جذر، نستخدم أول موظف
-                orgData = employeeMap.get(employees[0].id);
-            } else {
-                // إذا لم يكن هناك موظفين، ننشئ هيكلًا فارغًا
-                orgData = {
-                    id: generateId(),
-                    name: 'الرئيس التنفيذي',
-                    jobTitle: 'رئيس تنفيذي',
-                    directManager: '',
-                    nationality: 'سعودي',
-                    gender: 'ذكر',
-                    department: 'الادارة التنفيذية',
-                    location: 'الادارة التنفيذية',
-                    joinDate: new Date().toISOString().split('T')[0],
-                    experience: '0 سنة',
-                    basicSalary: 0,
-                    housingAllowance: 0,
-                    transportationAllowance: 0,
-                    totalSalary: 0,
-                    children: [],
-                    isExpanded: true
-                };
-            }
+
+        function updateStats() {
+            if (!document.getElementById('totalEmployees')) return;
+            document.getElementById('totalEmployees').textContent = employeesData.length;
+            const departments = [...new Set(employeesData.map(emp => emp.department))];
+            document.getElementById('totalDepartments').textContent = departments.length;
+            const managers = [...new Set(employeesData.map(e => e.manager).filter(Boolean))];
+            document.getElementById('totalManagers').textContent = managers.length;
         }
 
-        // دالة لعرض الهيكل التنظيمي
-        function renderOrgChart() {
-            const orgChart = document.getElementById('orgChart');
-            if (!orgData) {
-                orgChart.innerHTML = '<div class="loading">يرجى رفع ملف Excel لعرض الهيكل التنظيمي</div>';
-                return;
-            }
-            orgChart.innerHTML = '';
-            orgChart.appendChild(createNodeElement(orgData, 0));
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.querySelector(`.nav-link[data-page="${pageId}"]`).classList.add('active');
+
+            // Render content when page is shown
+            if (pageId === 'dashboard-page') updateStats();
+            if (pageId === 'org-chart-page') { renderHierarchyView(); renderTableView(); }
+            if (pageId === 'analytics-page') renderAnalytics(); 
+            if (pageId === 'payroll-report-page') renderPayrollReport();
+            if (pageId === 'tabular-analysis-page') renderTabularAnalysis();
+            if (pageId === 'deductions-analysis-page') renderDeductionsAnalysis();
+            // No render function needed for static developer page
         }
 
-        // دالة لإنشاء عنصر عقدة
-        function createNodeElement(node, level) {
-            const nodeDiv = document.createElement('div');
-            nodeDiv.className = `node level-${level}`;
-            nodeDiv.dataset.id = node.id;
-
-            const nodeHeader = document.createElement('div');
-            nodeHeader.className = 'node-header';
-            
-            const titleDiv = document.createElement('div');
-            titleDiv.style.display = 'flex';
-            titleDiv.style.alignItems = 'center';
-            titleDiv.style.gap = '10px';
-            
-            // إضافة أيقونة الطي/التوسيع إذا كان للعقدة أطفال
-            if (node.children && node.children.length > 0) {
-                const toggleIcon = document.createElement('span');
-                toggleIcon.className = 'toggle-icon';
-                toggleIcon.innerHTML = node.isExpanded ? '▼' : '▶';
-                toggleIcon.onclick = function(e) {
-                    e.stopPropagation();
-                    toggleNode(node.id);
-                };
-                titleDiv.appendChild(toggleIcon);
-            }
-            
-            const titleText = document.createElement('span');
-            titleText.innerHTML = `<strong>${node.name}</strong> - ${node.jobTitle}`;
-            titleDiv.appendChild(titleText);
-            
-            nodeHeader.appendChild(titleDiv);
-            nodeDiv.appendChild(nodeHeader);
-            
-            // إضافة تفاصيل الموظف
-            const nodeDetails = document.createElement('div');
-            nodeDetails.className = 'node-details';
-            
-            // القسم
-            const departmentRow = document.createElement('div');
-            departmentRow.className = 'detail-row';
-            const departmentLabel = document.createElement('div');
-            departmentLabel.className = 'detail-label';
-            departmentLabel.textContent = 'القسم:';
-            const departmentValue = document.createElement('div');
-            departmentValue.className = 'detail-value';
-            departmentValue.textContent = node.department;
-            departmentRow.appendChild(departmentLabel);
-            departmentRow.appendChild(departmentValue);
-            nodeDetails.appendChild(departmentRow);
-            
-            // الموقع
-            const locationRow = document.createElement('div');
-            locationRow.className = 'detail-row';
-            const locationLabel = document.createElement('div');
-            locationLabel.className = 'detail-label';
-            locationLabel.textContent = 'الموقع:';
-            const locationValue = document.createElement('div');
-            locationValue.className = 'detail-value';
-            locationValue.textContent = node.location;
-            locationRow.appendChild(locationLabel);
-            locationRow.appendChild(locationValue);
-            nodeDetails.appendChild(locationRow);
-            
-            // الجنسية والجنس
-            const nationalityRow = document.createElement('div');
-            nationalityRow.className = 'detail-row';
-            const nationalityLabel = document.createElement('div');
-            nationalityLabel.className = 'detail-label';
-            nationalityLabel.textContent = 'الجنسية/الجنس:';
-            const nationalityValue = document.createElement('div');
-            nationalityValue.className = 'detail-value';
-            nationalityValue.textContent = `${node.nationality} / ${node.gender}`;
-            nationalityRow.appendChild(nationalityLabel);
-            nationalityRow.appendChild(nationalityValue);
-            nodeDetails.appendChild(nationalityRow);
-            
-            // تاريخ الانضمام وسنوات الخبرة
-            if (node.joinDate || node.experience) {
-                const experienceRow = document.createElement('div');
-                experienceRow.className = 'detail-row';
-                const experienceLabel = document.createElement('div');
-                experienceLabel.className = 'detail-label';
-                experienceLabel.textContent = 'الخبرة:';
-                const experienceValue = document.createElement('div');
-                experienceValue.className = 'detail-value';
-                experienceValue.textContent = node.experience ? node.experience : (node.joinDate ? `منذ ${node.joinDate}` : 'غير محدد');
-                experienceRow.appendChild(experienceLabel);
-                experienceRow.appendChild(experienceValue);
-                nodeDetails.appendChild(experienceRow);
-            }
-            
-            // الراتب الإجمالي
-            if (node.totalSalary > 0) {
-                const salaryDiv = document.createElement('div');
-                salaryDiv.className = 'salary-highlight';
-                salaryDiv.innerHTML = `الراتب الإجمالي: <strong>${node.totalSalary.toLocaleString()} ريال</strong>`;
-                nodeDetails.appendChild(salaryDiv);
-            }
-            
-            nodeDiv.appendChild(nodeDetails);
-            
-            if (node.children && node.children.length > 0) {
-                const childrenDiv = document.createElement('div');
-                childrenDiv.className = `children ${node.isExpanded ? '' : 'hidden'}`;
-                
-                // فرز الأطفال أبجديًا حسب الاسم
-                const sortedChildren = [...node.children].sort((a, b) => a.name.localeCompare(b.name, 'ar'));
-                
-                sortedChildren.forEach(child => {
-                    childrenDiv.appendChild(createNodeElement(child, level + 1));
+        function setupEventListeners() {
+            // Sidebar navigation
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showPage(link.dataset.page);
                 });
-                
-                nodeDiv.appendChild(childrenDiv);
-            }
+            });
+
+            // Org chart view toggles
+            document.querySelectorAll('.view-toggle').forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                    document.querySelector('.view-toggle.active').classList.remove('active');
+                    toggle.classList.add('active');
+                    document.getElementById('hierarchyView').style.display = toggle.dataset.view === 'hierarchy' ? 'block' : 'none';
+                    document.getElementById('tableView').style.display = toggle.dataset.view === 'table' ? 'table' : 'none';
+                })
+            });
             
-            return nodeDiv;
+            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+            document.getElementById('downloadTemplate').addEventListener('click', downloadExcelTemplate);
+            document.getElementById('expandAll').addEventListener('click', expandAll);
+            document.getElementById('collapseAll').addEventListener('click', collapseAll);
+            document.getElementById('searchInput').addEventListener('input', handleSearch);
+            document.getElementById('closeCard').addEventListener('click', closeEmployeeCard);
+            
+            // Payroll report filters
+            document.getElementById('payrollSearchInput').addEventListener('input', applyPayrollFilters);
+            document.getElementById('payrollDeptFilter').addEventListener('change', applyPayrollFilters);
+            document.getElementById('payrollNatFilter').addEventListener('change', applyPayrollFilters);
+            document.getElementById('resetPayrollFilters').addEventListener('click', resetPayrollFilters);
+
+            // Tabular Analysis filters
+            document.getElementById('tabularDeptFilter').addEventListener('change', applyTabularFilters);
+            document.getElementById('tabularNatFilter').addEventListener('change', applyTabularFilters);
+            document.getElementById('resetTabularFilters').addEventListener('click', resetTabularFilters);
+            document.getElementById('printTabularAnalysis').addEventListener('click', () => window.print());
+
+            // Deductions Analysis filters
+            document.getElementById('deductionsDeptFilter').addEventListener('change', applyDeductionsFilters);
+            document.getElementById('deductionsNatFilter').addEventListener('change', applyDeductionsFilters);
+            document.getElementById('resetDeductionsFilters').addEventListener('click', resetDeductionsFilters);
+            document.getElementById('printDeductionsAnalysis').addEventListener('click', () => window.print());
+
+            document.getElementById('overlay').addEventListener('click', closeAllPanels);
+            document.getElementById('printAnalytics').addEventListener('click', () => window.print());
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeAllPanels();
+            });
         }
 
-        // دالة للطي أو التوسيع
-        function toggleNode(nodeId) {
-            function findAndToggle(node, targetId) {
-                if (node.id === targetId) {
-                    node.isExpanded = !node.isExpanded;
-                    return true;
-                }
-                
-                if (node.children) {
-                    for (let child of node.children) {
-                        if (findAndToggle(child, targetId)) {
-                            return true;
-                        }
+        function handleFileUpload(event) {
+            expandedState = {};
+            const file = event.target.files[0];
+            if (!file) return;
+            document.getElementById('fileName').textContent = file.name;
+            showLoading(true);
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext === 'json') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        employeesData = JSON.parse(e.target.result);
+                        showLoading(false);
+                        showPage('dashboard-page');
+                        showAlert('تم تحميل ملف JSON بنجاح', 'success');
+                    } catch (error) {
+                        showAlert('خطأ في تحميل ملف JSON', 'error');
+                        showLoading(false);
+                    }
+                };
+                reader.readAsText(file);
+            } else if (['xlsx', 'xls'].includes(ext)) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(ws);
+                        employeesData = processExcelData(jsonData);
+                        showLoading(false);
+                        showPage('dashboard-page');
+                        showAlert('تم تحميل ملف Excel بنجاح', 'success');
+                    } catch (error) {
+                        showAlert('خطأ في تحميل ملف Excel', 'error');
+                        showLoading(false);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (ext === 'csv') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const wb = XLSX.read(e.target.result, { type: 'string' });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(ws);
+                        employeesData = processExcelData(jsonData);
+                        showLoading(false);
+                        showPage('dashboard-page');
+                        showAlert('تم تحميل ملف CSV بنجاح', 'success');
+                    } catch (error) {
+                        showAlert('خطأ في تحميل ملف CSV', 'error');
+                        showLoading(false);
+                    }
+                };
+                reader.readAsText(file);
+            } else {
+                showAlert('نوع الملف غير مدعوم', 'error');
+                showLoading(false);
+            }
+        }
+
+        // === دالة معالجة البيانات المالية الديناميكية والمحسّنة ===
+        function processExcelData(data) {
+            // قاموس مرن لأسماء الأعمدة المحتملة
+            const columnMappings = {
+                employeeId: ['رقم الموظف', 'الرقم الوظيفي', 'employeeId'],
+                name: ['اسم الموظف', 'الاسم كاملاً', 'name'],
+                department: ['اسم القسم', 'القسم', 'department'],
+                position: ['المسمى الوظيفي', 'position'],
+                location: ['الموقع', 'location'],
+                manager: ['المدير المباشر', 'manager'],
+                nationality: ['الجنسية', 'nationality'],
+                hireDate: ['تاريخ التعيين', 'hireDate'],
+                email: ['البريد الإلكتروني', 'email'],
+                phone: ['الهاتف', 'phone'],
+                basicSalary: ['الراتب الاساسي', 'الراتب الأساسي'],
+                housingAllowance: ['بدل سكن'],
+                transportAllowance: ['بدل مواصلات'],
+                foodAllowance: ['بدل إعاشة'],
+                natureAllowance: ['بدل طبيعة عمل'],
+                fuelAllowance: ['بدل محروقات'],
+                communicationAllowance: ['بدل اتصال'],
+                otherAllowance: ['أخرى'],
+                fixedExtraAllowance: ['بدل اضافي ثابت'],
+                managementAllowance: ['بدل ادارة'],
+                // Deductions
+                totalDeductions: ['اجمالي الخصميات', 'اجمالي الخصومات', 'الخصميات'],
+                appointmentDateDiff: ['فروقات يوم التعيين'],
+                prepaidSalary: ['راتب مدفوع مسبقًا'],
+                lateness: ['تاخير'],
+                earlyDeparture: ['خروج مبكر'],
+                absence: ['غياب'],
+                forgotClock: ['نسيان بصمه'],
+                unpaidLeave: ['اجازة غير مدفوعة'],
+                laborLawViolation: ['خصم مخالفات قانون العمل'],
+                socialInsurance: ['التامينات الاجتماعية'],
+                personalLoan: ['شخصي سلفة'],
+                housingLoan: ['سكني سلفة'],
+                trafficLoan: ['مخالفات مرورية سلفة'],
+                financialLoan: ['المقابل المالي سلفة'],
+                arrivalLoan: ['سلفة قدوم سلفة'],
+                otherDeductions: ['خصومات اخرى']
+            };
+
+            // دالة ديناميكية للحصول على قيمة الخلية بغض النظر عن اسم العمود الدقيق
+            function getCellValue(row, field) {
+                for (const key of columnMappings[field]) {
+                    if (row[key] !== undefined) {
+                        return row[key];
                     }
                 }
+                return undefined;
+            }
+
+            return data.map((row, i) => {
+                // === البيانات المالية ===
+                // البدلات
+                const basic = parseFloat(getCellValue(row, 'basicSalary') || 0);
+                const housing = parseFloat(getCellValue(row, 'housingAllowance') || 0);
+                const transport = parseFloat(getCellValue(row, 'transportAllowance') || 0);
+                const food = parseFloat(getCellValue(row, 'foodAllowance') || 0);
+                const nature = parseFloat(getCellValue(row, 'natureAllowance') || 0);
+                const fuel = parseFloat(getCellValue(row, 'fuelAllowance') || 0);
+                const communication = parseFloat(getCellValue(row, 'communicationAllowance') || 0);
+                const other = parseFloat(getCellValue(row, 'otherAllowance') || 0);
+                const fixedExtra = parseFloat(getCellValue(row, 'fixedExtraAllowance') || 0);
+                const management = parseFloat(getCellValue(row, 'managementAllowance') || 0);
                 
-                return false;
-            }
-            
-            findAndToggle(orgData, nodeId);
-            renderOrgChart();
+                // الخصومات
+                const deductions = parseFloat(getCellValue(row, 'totalDeductions') || 0);
+                const appointmentDateDiff = parseFloat(getCellValue(row, 'appointmentDateDiff') || 0);
+                const prepaidSalary = parseFloat(getCellValue(row, 'prepaidSalary') || 0);
+                const lateness = parseFloat(getCellValue(row, 'lateness') || 0);
+                const earlyDeparture = parseFloat(getCellValue(row, 'earlyDeparture') || 0);
+                const absence = parseFloat(getCellValue(row, 'absence') || 0);
+                const forgotClock = parseFloat(getCellValue(row, 'forgotClock') || 0);
+                const unpaidLeave = parseFloat(getCellValue(row, 'unpaidLeave') || 0);
+                const laborLawViolation = parseFloat(getCellValue(row, 'laborLawViolation') || 0);
+                const socialInsurance = parseFloat(getCellValue(row, 'socialInsurance') || 0);
+                const personalLoan = parseFloat(getCellValue(row, 'personalLoan') || 0);
+                const housingLoan = parseFloat(getCellValue(row, 'housingLoan') || 0);
+                const trafficLoan = parseFloat(getCellValue(row, 'trafficLoan') || 0);
+                const financialLoan = parseFloat(getCellValue(row, 'financialLoan') || 0);
+                const arrivalLoan = parseFloat(getCellValue(row, 'arrivalLoan') || 0);
+                const otherDeductions = parseFloat(getCellValue(row, 'otherDeductions') || 0);
+
+                
+                // الحسابات
+                const totalAllowances = housing + transport + food + nature + fuel + communication + other + fixedExtra + management;
+                const totalSalary = basic + totalAllowances;
+                const netSalary = totalSalary - deductions;
+                
+                return {
+                    id: i+1,
+                    employeeId: (getCellValue(row, 'employeeId') || `EMP${i+1}`).toString(),
+                    name: getCellValue(row, 'name') || 'غير معروف',
+                    department: getCellValue(row, 'department') || '',
+                    position: getCellValue(row, 'position') || '',
+                    location: getCellValue(row, 'location') || '',
+                    manager: getCellValue(row, 'manager') || '',
+                    nationality: getCellValue(row, 'nationality') || '',
+                    hireDate: getCellValue(row, 'hireDate') || '',
+                    email: getCellValue(row, 'email') || '',
+                    phone: getCellValue(row, 'phone') || '',
+                    // البيانات المالية
+                    basicSalary: basic,
+                    housingAllowance: housing,
+                    transportAllowance: transport,
+                    foodAllowance: food,
+                    natureAllowance: nature,
+                    fuelAllowance: fuel,
+                    communicationAllowance: communication,
+                    otherAllowance: other,
+                    fixedExtraAllowance: fixedExtra,
+                    managementAllowance: management,
+                    totalAllowances,
+                    totalSalary,
+                    totalDeductions: deductions, // This is the total from the file
+                    // Detailed deductions
+                    appointmentDateDiff, prepaidSalary, lateness, earlyDeparture, absence,
+                    forgotClock, unpaidLeave, laborLawViolation, socialInsurance,
+                    personalLoan, housingLoan, trafficLoan, financialLoan, arrivalLoan, otherDeductions,
+                    // Calculated totals for verification/analysis
+                    totalLoans: personalLoan + housingLoan + trafficLoan + financialLoan + arrivalLoan,
+                    totalPenalties: lateness + earlyDeparture + absence + forgotClock + unpaidLeave + laborLawViolation,
+                    totalAdministrative: appointmentDateDiff + prepaidSalary + otherDeductions,
+                    netSalary
+                };
+            });
         }
 
-        // دالة للطي الكل
-        function collapseAll() {
-            function collapseNode(node) {
-                node.isExpanded = false;
-                if (node.children) {
-                    node.children.forEach(child => collapseNode(child));
+        function downloadExcelTemplate() {
+            const data = [
+                {
+                    'رقم الموظف': '001',
+                    'اسم الموظف': 'سالم أحمد العوضي',
+                    'اسم القسم': 'الإدارة العليا',
+                    'المسمى الوظيفي': 'العضو المنتدب',
+                    'الجنسية': 'سعودي',
+                    'الراتب الاساسي': 25000,
+                    'بدل سكن': 5000,
+                    'بدل مواصلات': 2000,
+                    'بدل إعاشة': 1000,
+                    'بدل طبيعة عمل': 1000,
+                    'بدل محروقات': 500,
+                    'أخرى': 0,
+                    'بدل اضافي ثابت': 0,
+                    'بدل ادارة': 500,
+                    'اجمالي الخصميات': 2500
                 }
-            }
-            
-            if (orgData) {
-                collapseNode(orgData);
-                isAllExpanded = false;
-                renderOrgChart();
-            }
+            ];
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'البيانات المالية');
+            XLSX.writeFile(wb, 'نموذج_البيانات_المالية.xlsx');
         }
 
-        // دالة للتوسيع الكل
-        function expandAll() {
-            function expandNode(node) {
-                node.isExpanded = true;
-                if (node.children) {
-                    node.children.forEach(child => expandNode(child));
+        function buildHierarchy(employees, level = 0) {
+            const map = {};
+            employees.forEach(emp => {
+                const isExpanded = expandedState[emp.name] !== undefined 
+                    ? expandedState[emp.name] 
+                    : level === 0; // توسيع المستوى الأول فقط افتراضيًا
+                map[emp.name] = { ...emp, children: [], level, expanded: isExpanded };
+            });
+            const root = [];
+            employees.forEach(emp => {
+                if (emp.manager && map[emp.manager]) {
+                    map[emp.manager].children.push(map[emp.name]);
+                } else if (!emp.manager) {
+                    root.push(map[emp.name]);
                 }
-            }
-            
-            if (orgData) {
-                expandNode(orgData);
-                isAllExpanded = true;
-                renderOrgChart();
-            }
+            });
+            return root;
         }
 
-        // دالة لتحديث إحصائيات الهيكل
-        function updateOrgStats() {
-            if (!orgData) return;
-            
-            // حساب إجمالي الموظفين
-            function countEmployees(node) {
-                let count = 1; // العد يشمل العقدة الحالية
-                if (node.children) {
-                    node.children.forEach(child => {
-                        count += countEmployees(child);
-                    });
-                }
-                return count;
-            }
-            
-            // حساب أقصى عمق
-            function getMaxDepth(node, currentDepth = 0) {
-                let maxDepth = currentDepth;
-                if (node.children) {
-                    node.children.forEach(child => {
-                        const childDepth = getMaxDepth(child, currentDepth + 1);
-                        if (childDepth > maxDepth) {
-                            maxDepth = childDepth;
-                        }
-                    });
-                }
-                return maxDepth;
-            }
-            
-            // حساب عدد الموظفين في المستوى الأعلى (الأطفال المباشرين للجذر)
-            const topLevelCount = orgData.children ? orgData.children.length : 0;
-            
-            // تحديث الإحصائيات
-            document.getElementById('totalEmployees').textContent = countEmployees(orgData);
-            document.getElementById('demoTotalEmployees').textContent = countEmployees(orgData);
-            document.getElementById('totalLevels').textContent = getMaxDepth(orgData) + 1; // +1 لأننا نبدأ من 0
-            document.getElementById('topLevelCount').textContent = topLevelCount;
-        }
-
-        // دالة للبحث في الهيكل التنظيمي
-        function searchOrgChart() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            if (!searchTerm) {
-                renderOrgChart();
+        function renderHierarchyView() {
+            const tree = document.getElementById('orgTree');
+            if (!tree) return;
+            tree.innerHTML = '';
+            if (employeesData.length === 0) {
+                tree.innerHTML = '<div class="no-data">يرجى تحميل ملف بيانات لعرض الهيكل التنظيمي</div>';
                 return;
             }
+            currentTreeData = buildHierarchy(employeesData);
+            currentTreeData.forEach(emp => tree.appendChild(createTreeNode(emp)));
+        }
+
+        function createTreeNode(emp) {
+            const node = document.createElement('div');
+            node.className = 'tree-node';
+            node.setAttribute('data-employee-id', emp.id);
             
-            function searchNode(node, term) {
-                if (node.name.toLowerCase().includes(term) || 
-                    node.jobTitle.toLowerCase().includes(term) ||
-                    node.department.toLowerCase().includes(term) ||
-                    node.location.toLowerCase().includes(term)) {
+            const card = document.createElement('div');
+            card.className = `employee-card level-${Math.min(emp.level, 4)}`;
+            if (selectedEmployee && selectedEmployee.id === emp.id) card.classList.add('selected');
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'employee-avatar';
+            avatar.textContent = emp.name.split(' ').map(n => n[0]).join('');
+            avatar.addEventListener('click', e => {
+                e.stopPropagation();
+                showEmployeeCard(emp);
+            });
+            
+            const info = document.createElement('div');
+            info.className = 'employee-info';
+            info.innerHTML = `<div class="employee-name">${emp.name}</div><div class="employee-position">${emp.position} - ${emp.department}</div>`;
+            
+            card.appendChild(avatar);
+            card.appendChild(info);
+            
+            if (emp.children && emp.children.length > 0) {
+                const badge = document.createElement('span');
+                badge.className = 'employee-count';
+                badge.textContent = emp.children.length;
+                card.appendChild(badge);
+                
+                const btn = document.createElement('button');
+                btn.className = 'toggle-btn';
+                btn.innerHTML = emp.expanded ? '−' : '+';
+                btn.setAttribute('data-expanded', emp.expanded);
+                btn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    toggleTreeNode(btn, emp);
+                });
+                card.appendChild(btn);
+            }
+            
+            node.appendChild(card);
+            
+            if (emp.children && emp.children.length > 0) {
+                const childrenDiv = document.createElement('div');
+                childrenDiv.className = `children ${emp.expanded ? '' : 'collapsed'}`;
+                emp.children.forEach(child => childrenDiv.appendChild(createTreeNode(child)));
+                node.appendChild(childrenDiv);
+            }
+            
+            return node;
+        }
+
+        function toggleTreeNode(btn, emp) {
+            const node = btn.closest('.tree-node');
+            const children = node.querySelector('.children');
+            const isExpanded = btn.getAttribute('data-expanded') === 'true';
+            
+            if (isExpanded) {
+                children.classList.add('collapsed');
+                btn.innerHTML = '+';
+                btn.setAttribute('data-expanded', 'false');
+                emp.expanded = false;
+                expandedState[emp.name] = false;
+            } else {
+                children.classList.remove('collapsed');
+                btn.innerHTML = '−';
+                btn.setAttribute('data-expanded', 'true');
+                emp.expanded = true;
+                expandedState[emp.name] = true;
+            }
+        }
+
+        function expandAll() {
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                if (btn.getAttribute('data-expanded') === 'false') btn.click();
+            });
+        }
+
+        function collapseAll() {
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                if (btn.getAttribute('data-expanded') === 'true') btn.click();
+            });
+        }
+
+        // === البحث المحسن ===
+        function handleSearch() {
+            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+            const orgTree = document.getElementById('orgTree');
+
+            if (searchTerm.length < 2) {
+                renderHierarchyView();
+                return;
+            }
+
+            if (employeesData.length === 0) {
+                orgTree.innerHTML = '<div class="no-data">يرجى تحميل ملف بيانات أولاً</div>';
+                return;
+            }
+
+            renderHierarchyView();
+
+            const matchingEmployees = employeesData.filter(emp =>
+                emp.name.toLowerCase().includes(searchTerm) ||
+                emp.employeeId.toLowerCase().includes(searchTerm) ||
+                emp.position.toLowerCase().includes(searchTerm) ||
+                emp.department.toLowerCase().includes(searchTerm)
+            );
+
+            if (matchingEmployees.length === 0) {
+                orgTree.innerHTML = '<div class="no-data">لا توجد نتائج للبحث</div>';
+                return;
+            }
+
+            const matchingNames = new Set(matchingEmployees.map(emp => emp.name));
+
+            function shouldShow(employee) {
+                if (matchingNames.has(employee.name)) return true;
+                if (!employee.children || employee.children.length === 0) return false;
+                return employee.children.some(child => shouldShow(child));
+            }
+
+            function expandPath(employee) {
+                if (matchingNames.has(employee.name)) {
+                    employee.expanded = true;
                     return true;
                 }
+                if (!employee.children || employee.children.length === 0) return false;
                 
-                if (node.children) {
-                    for (let child of node.children) {
-                        if (searchNode(child, term)) {
-                            return true;
+                let shouldExpand = false;
+                for (const child of employee.children) {
+                    if (expandPath(child)) {
+                        shouldExpand = true;
+                    }
+                }
+                employee.expanded = shouldExpand;
+                return shouldExpand;
+            }
+
+            currentTreeData.forEach(emp => expandPath(emp));
+
+            orgTree.innerHTML = '';
+            currentTreeData.forEach(employee => {
+                orgTree.appendChild(createTreeNode(employee));
+            });
+
+            function hideUnrelatedNodes(nodeElement, employee) {
+                const shouldDisplay = shouldShow(employee);
+                if (!shouldDisplay) {
+                    nodeElement.style.display = 'none';
+                } else {
+                    nodeElement.style.display = '';
+                    if (employee.children && employee.children.length > 0) {
+                        const childrenContainer = nodeElement.querySelector('.children');
+                        if (childrenContainer) {
+                            employee.children.forEach((child, index) => {
+                                const childNode = childrenContainer.children[index];
+                                if (childNode) {
+                                    hideUnrelatedNodes(childNode, child);
+                                }
+                            });
                         }
                     }
                 }
-                
-                return false;
             }
-            
-            function filterNode(node, term) {
-                if (searchNode(node, term)) {
-                    const filteredNode = {...node};
-                    if (filteredNode.children) {
-                        filteredNode.children = filteredNode.children
-                            .map(child => filterNode(child, term))
-                            .filter(child => child !== null);
-                    }
-                    return filteredNode;
+
+            const rootNodeElements = orgTree.children;
+            currentTreeData.forEach((employee, index) => {
+                const nodeElement = rootNodeElements[index];
+                if (nodeElement) {
+                    hideUnrelatedNodes(nodeElement, employee);
                 }
-                return null;
-            }
+            });
+        }
+
+        function showEmployeeCard(emp) {
+            selectedEmployee = emp;
+            document.getElementById('cardAvatar').textContent = emp.name.split(' ').map(n => n[0]).join('');
+            document.getElementById('cardName').textContent = emp.name;
+            document.getElementById('cardPosition').textContent = emp.position;
+            document.getElementById('cardEmployeeId').textContent = `الرقم الوظيفي: ${emp.employeeId}`;
+            document.getElementById('cardDepartment').textContent = `القسم: ${emp.department}`;
+            document.getElementById('cardManager').textContent = `المدير المباشر: ${emp.manager || '-'}`;
+            document.getElementById('cardLocation').textContent = `الموقع: ${emp.location || '-'}`;
+            document.getElementById('cardNationality').textContent = `الجنسية: ${emp.nationality || '-'}`;
+            document.getElementById('cardHireDate').textContent = `تاريخ التعيين: ${emp.hireDate || '-'}`;
+            document.getElementById('cardEmail').textContent = `البريد: ${emp.email || '-'}`;
+            document.getElementById('cardPhone').textContent = `الهاتف: ${emp.phone || '-'}`;
+            document.getElementById('cardSalary').textContent = `إجمالي الراتب: ${emp.totalSalary ? emp.totalSalary.toLocaleString() + ' ريال' : '-'}`;
+            document.getElementById('cardNetSalary').textContent = `صافي الراتب: ${emp.netSalary ? emp.netSalary.toLocaleString() + ' ريال' : '-'}`;
             
-            const filteredData = filterNode(orgData, searchTerm);
-            if (filteredData) {
-                const orgChart = document.getElementById('orgChart');
-                orgChart.innerHTML = '';
-                orgChart.appendChild(createNodeElement(filteredData, 0));
+            const team = employeesData.filter(e => e.manager === emp.name);
+            const teamCont = document.getElementById('teamMembers');
+            const teamSec = document.getElementById('teamSection');
+            if (team.length > 0) {
+                teamSec.style.display = 'block';
+                teamCont.innerHTML = team.map(m => 
+                    `<div class="team-member" onclick="showEmployeeCardFromSearch('${m.name}')">
+                        <div class="team-avatar">${m.name.split(' ').map(n => n[0]).join('')}</div>
+                        <div class="team-info">
+                            <div class="team-name">${m.name}</div>
+                            <div class="team-position">${m.position}</div>
+                        </div>
+                    </div>`
+                ).join('');
             } else {
-                document.getElementById('orgChart').innerHTML = '<div style="text-align: center; padding: 20px;">لا توجد نتائج مطابقة للبحث</div>';
-            }
-        }
-        
-        // دالة لتحديث التحليلات
-        function updateAnalysis() {
-            if (employees.length === 0) return;
-            
-            // التحليل الديموغرافي
-            updateDemographicsAnalysis();
-            
-            // تحليل الأقسام
-            updateDepartmentsAnalysis();
-            
-            // تحليل الرواتب
-            updateSalariesAnalysis();
-            
-            // تحليل الخبرة
-            updateExperienceAnalysis();
-        }
-        
-        // التحليل الديموغرافي
-        function updateDemographicsAnalysis() {
-            // عدد الموظفين حسب الجنس
-            const maleCount = employees.filter(emp => emp.gender === 'ذكر').length;
-            const femaleCount = employees.filter(emp => emp.gender === 'أنثى').length;
-            const totalCount = employees.length;
-            
-            document.getElementById('maleEmployees').textContent = maleCount;
-            document.getElementById('femaleEmployees').textContent = femaleCount;
-            document.getElementById('malePercentage').textContent = ((maleCount / totalCount) * 100).toFixed(1) + '%';
-            document.getElementById('femalePercentage').textContent = ((femaleCount / totalCount) * 100).toFixed(1) + '%';
-            
-            // التوزيع حسب الجنسية
-            const nationalityMap = {};
-            employees.forEach(emp => {
-                nationalityMap[emp.nationality] = (nationalityMap[emp.nationality] || 0) + 1;
-            });
-            
-            // فرز الجنسيات حسب العدد
-            const sortedNationalities = Object.entries(nationalityMap).sort((a, b) => b[1] - a[1]);
-            
-            // تحديث جدول الجنسية
-            const nationalityTableBody = document.getElementById('nationalityTableBody');
-            nationalityTableBody.innerHTML = '';
-            
-            sortedNationalities.forEach(([nationality, count]) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${nationality}</td>
-                    <td>${count}</td>
-                    <td>${((count / totalCount) * 100).toFixed(1)}%</td>
-                `;
-                nationalityTableBody.appendChild(row);
-            });
-        }
-        
-        // تحليل الأقسام
-        function updateDepartmentsAnalysis() {
-            // تجميع الموظفين حسب القسم
-            const departmentMap = {};
-            employees.forEach(emp => {
-                if (!departmentMap[emp.department]) {
-                    departmentMap[emp.department] = {
-                        count: 0,
-                        maleCount: 0,
-                        femaleCount: 0,
-                        employees: []
-                    };
-                }
-                departmentMap[emp.department].count++;
-                departmentMap[emp.department].employees.push(emp);
-                if (emp.gender === 'ذكر') {
-                    departmentMap[emp.department].maleCount++;
-                } else if (emp.gender === 'أنثى') {
-                    departmentMap[emp.department].femaleCount++;
-                }
-            });
-            
-            // عدد الأقسام
-            const departmentCount = Object.keys(departmentMap).length;
-            document.getElementById('totalDepartments').textContent = departmentCount;
-            
-            // أكبر وأصغر قسم
-            let largestDepartment = '';
-            let smallestDepartment = '';
-            let largestCount = 0;
-            let smallestCount = Infinity;
-            
-            for (const [dept, data] of Object.entries(departmentMap)) {
-                if (data.count > largestCount) {
-                    largestCount = data.count;
-                    largestDepartment = dept;
-                }
-                if (data.count < smallestCount) {
-                    smallestCount = data.count;
-                    smallestDepartment = dept;
-                }
+                teamSec.style.display = 'none';
             }
             
-            document.getElementById('largestDepartment').textContent = largestDepartment;
-            document.getElementById('largestDepartmentCount').textContent = largestCount;
-            document.getElementById('smallestDepartment').textContent = smallestDepartment;
-            document.getElementById('smallestDepartmentCount').textContent = smallestCount;
-            
-            // فرز الأقسام حسب العدد
-            const sortedDepartments = Object.entries(departmentMap).sort((a, b) => b[1].count - a[1].count);
-            
-            // تحديث جدول الأقسام
-            const departmentTableBody = document.getElementById('departmentTableBody');
-            departmentTableBody.innerHTML = '';
-            
-            sortedDepartments.forEach(([department, data]) => {
+            document.getElementById('employeeCard').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+        }
+
+        window.showEmployeeCardFromSearch = function(name) {
+            const emp = employeesData.find(e => e.name === name);
+            if (emp) showEmployeeCard(emp);
+        };
+
+        function closeEmployeeCard() {
+            document.getElementById('employeeCard').classList.remove('active');
+            if (!document.querySelector('.analytics-view.active')) {
+                document.getElementById('overlay').classList.remove('active');
+            }
+        }
+
+        function renderTableView() {
+            const body = document.getElementById('tableBody');
+            if (!body) return;
+            body.innerHTML = '';
+            if (employeesData.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" class="no-data">يرجى تحميل ملف بيانات لعرض الجدول</td></tr>';
+                return;
+            }
+            employeesData.forEach(emp => {
                 const row = document.createElement('tr');
+                row.addEventListener('click', () => showEmployeeCard(emp));
                 row.innerHTML = `
-                    <td>${department}</td>
-                    <td>${data.count}</td>
-                    <td>${((data.count / employees.length) * 100).toFixed(1)}%</td>
-                    <td>${data.maleCount}</td>
-                    <td>${data.femaleCount}</td>
+                    <td>${emp.employeeId}</td>
+                    <td>${emp.name}</td>
+                    <td>${emp.department}</td>
+                    <td>${emp.manager || '-'}</td>
+                    <td>${emp.position}</td>
                 `;
-                departmentTableBody.appendChild(row);
+                body.appendChild(row);
             });
         }
-        
-        // تحليل الرواتب
-        function updateSalariesAnalysis() {
-            // الإحصائيات الأساسية للرواتب
-            const totalSalaries = employees.reduce((sum, emp) => sum + emp.totalSalary, 0);
-            const highestSalary = Math.max(...employees.map(emp => emp.totalSalary));
-            const lowestSalary = Math.min(...employees.map(emp => emp.totalSalary));
-            const averageSalary = totalSalaries / employees.length;
+
+        // === صفحة تحليل البيانات ===
+        function renderAnalytics() {
+            const analyticsContent = document.getElementById('analyticsContent');
+            if (employeesData.length === 0) {
+                analyticsContent.innerHTML = '<div class="no-data">يرجى تحميل ملف بيانات لعرض التحليلات</div>';
+                return;
+            }
+
+            // تدمير الرسوم البيانية القديمة
+            charts.forEach(chart => chart.destroy());
+            charts = [];
             
-            // حساب الراتب الأكثر تكراراً (Mode)
-            const salaryFrequency = {};
-            employees.forEach(emp => {
-                salaryFrequency[emp.totalSalary] = (salaryFrequency[emp.totalSalary] || 0) + 1;
+            // إعادة بناء هيكل صفحة التحليلات وتأجيل تنفيذ الكود لضمان تحميل الـ DOM
+            setTimeout(() => {
+                analyticsContent.innerHTML = `
+                    <div class="stats-cards">
+                        <div class="stat-card"><div class="stat-value">💰</div><div class="stat-value" id="totalPayroll">0</div><div class="stat-label">إجمالي الرواتب</div></div>
+                        <div class="stat-card"><div class="stat-value">💵</div><div class="stat-value" id="totalNetSalary">0</div><div class="stat-label">إجمالي صافي الرواتب</div></div>
+                        <div class="stat-card"><div class="stat-value">➕</div><div class="stat-value" id="totalAllowances">0</div><div class="stat-label">إجمالي البدلات</div></div>
+                        <div class="stat-card"><div class="stat-value">➖</div><div class="stat-value" id="totalDeductions">0</div><div class="stat-label">إجمالي الخصومات</div></div>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="chart-title">توزيع إجمالي الرواتب حسب القسم</h3>
+                        <button class="export-btn" onclick="exportChart('salaryByDeptChart', 'توزيع_الرواتب_حسب_القسم')">تصدير</button>
+                        <canvas id="salaryByDeptChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="chart-title">إجمالي صافي الراتب حسب الجنسية</h3>
+                        <button class="export-btn" onclick="exportChart('netSalaryByNationalityChart', 'إجمالي_صافي_الراتب_حسب_الجنسية')">تصدير</button>
+                        <canvas id="netSalaryByNationalityChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="chart-title">مكونات الراتب الإجمالي</h3>
+                        <button class="export-btn" onclick="exportChart('salaryComponentsChart', 'مكونات_الراتب_الإجمالي')">تصدير</button>
+                        <canvas id="salaryComponentsChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="chart-title">أعلى 5 وظائف حسب إجمالي صافي الراتب</h3>
+                        <button class="export-btn" onclick="exportChart('topPositionsBySalaryChart', 'أعلى_الوظائف_حسب_إجمالي_الراتب')">تصدير</button>
+                        <canvas id="topPositionsBySalaryChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="chart-title">توزيع الموظفين حسب القسم</h3>
+                        <button class="export-btn" onclick="exportChart('employeesByDeptChart', 'توزيع_الموظفين_حسب_القسم')">تصدير</button>
+                        <canvas id="employeesByDeptChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="chart-title">تفصيل البدلات</h3>
+                        <button class="export-btn" onclick="exportChart('allowancesBreakdownChart', 'تفصيل_البدلات')">تصدير</button>
+                        <canvas id="allowancesBreakdownChart"></canvas>
+                    </div>
+                `;
+
+                // --- الحسابات ---
+                const totalPayroll = employeesData.reduce((sum, emp) => sum + (emp.totalSalary || 0), 0);
+                const totalNetSalary = employeesData.reduce((sum, emp) => sum + (emp.netSalary || 0), 0);
+                const totalAllowances = employeesData.reduce((sum, emp) => sum + (emp.totalAllowances || 0), 0);
+                const totalDeductions = employeesData.reduce((sum, emp) => sum + (emp.totalDeductions || 0), 0);
+                const currencyFormat = { style: 'currency', currency: 'SAR' };
+                document.getElementById('totalPayroll').textContent = totalPayroll.toLocaleString('ar-SA', currencyFormat);
+                document.getElementById('totalNetSalary').textContent = totalNetSalary.toLocaleString('ar-SA', currencyFormat);
+                document.getElementById('totalAllowances').textContent = totalAllowances.toLocaleString('ar-SA', currencyFormat);
+                document.getElementById('totalDeductions').textContent = totalDeductions.toLocaleString('ar-SA', currencyFormat);
+
+                // --- دالة مساعدة لإنشاء الرسوم البيانية ---
+                const createChart = (canvasId, type, data, options) => {
+                    const ctx = document.getElementById(canvasId).getContext('2d');
+                    const chart = new Chart(ctx, { type, data, options });
+                    charts.push(chart);
+                };
+
+                // --- تجميع البيانات ---
+                const aggregateData = (key, valueField) => {
+                    return employeesData.reduce((acc, emp) => {
+                        const group = emp[key] || 'غير محدد';
+                        acc[group] = (acc[group] || 0) + (emp[valueField] || 0);
+                        return acc;
+                    }, {});
+                };
+
+                const aggregateAverage = (key, valueField) => {
+                    const sums = {};
+                    const counts = {};
+                    employeesData.forEach(emp => {
+                        const group = emp[key] || 'غير محدد';
+                        sums[group] = (sums[group] || 0) + (emp[valueField] || 0);
+                        counts[group] = (counts[group] || 0) + 1;
+                    });
+                    return Object.keys(sums).reduce((acc, group) => {
+                        acc[group] = sums[group] / counts[group];
+                        return acc;
+                    }, {});
+                };
+
+                // --- إنشاء الرسوم البيانية ---
+
+                const salaryByDept = aggregateData('department', 'totalSalary');
+                createChart('salaryByDeptChart', 'bar', {
+                    labels: Object.keys(salaryByDept),
+                    datasets: [{ label: 'إجمالي الرواتب (ريال)', data: Object.values(salaryByDept), backgroundColor: 'rgba(37, 99, 235, 0.6)' }]
+                }, { responsive: true, scales: { y: { beginAtZero: true } } });
+
+                const totalSalaryByNat = aggregateData('nationality', 'netSalary');
+                createChart('netSalaryByNationalityChart', 'bar', {
+                    labels: Object.keys(totalSalaryByNat),
+                    datasets: [{ label: 'إجمالي صافي الراتب (ريال)', data: Object.values(totalSalaryByNat), backgroundColor: 'rgba(16, 185, 129, 0.6)' }]
+                }, { responsive: true, scales: { y: { beginAtZero: true } } });
+
+                const totalBasic = employeesData.reduce((sum, emp) => sum + (emp.basicSalary || 0), 0);
+                createChart('salaryComponentsChart', 'doughnut', {
+                    labels: ['الراتب الأساسي', 'إجمالي البدلات', 'إجمالي الخصومات'],
+                    datasets: [{ data: [totalBasic, totalAllowances, totalDeductions], backgroundColor: ['#3b82f6', '#10b981', '#ef4444'] }]
+                }, { responsive: true, plugins: { legend: { position: 'top' } } });
+
+                const totalSalaryByPos = aggregateData('position', 'netSalary');
+                const top5Positions = Object.entries(totalSalaryByPos).sort(([, a], [, b]) => b - a).slice(0, 5);
+                createChart('topPositionsBySalaryChart', 'bar', {
+                    labels: top5Positions.map(p => p[0]),
+                    datasets: [{ label: 'إجمالي صافي الراتب (ريال)', data: top5Positions.map(p => p[1]), backgroundColor: 'rgba(139, 92, 246, 0.6)' }]
+                }, { responsive: true, scales: { y: { beginAtZero: true } } });
+
+                const employeesByDept = employeesData.reduce((acc, emp) => {
+                    const dept = emp.department || 'غير محدد';
+                    acc[dept] = (acc[dept] || 0) + 1;
+                    return acc;
+                }, {});
+                createChart('employeesByDeptChart', 'pie', {
+                    labels: Object.keys(employeesByDept),
+                    datasets: [{ data: Object.values(employeesByDept), backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'] }]
+                }, { responsive: true, plugins: { legend: { position: 'top' } } });
+
+                const allowances = {
+                    'بدل سكن': employeesData.reduce((s, e) => s + (e.housingAllowance || 0), 0),
+                    'بدل مواصلات': employeesData.reduce((s, e) => s + (e.transportAllowance || 0), 0),
+                    'بدل إعاشة': employeesData.reduce((s, e) => s + (e.foodAllowance || 0), 0),
+                    'بدل طبيعة عمل': employeesData.reduce((s, e) => s + (e.natureAllowance || 0), 0),
+                    'بدل إدارة': employeesData.reduce((s, e) => s + (e.managementAllowance || 0), 0),
+                    'بدلات أخرى': employeesData.reduce((s, e) => s + (e.fuelAllowance || 0) + (e.communicationAllowance || 0) + (e.otherAllowance || 0) + (e.fixedExtraAllowance || 0), 0),
+                };
+                createChart('allowancesBreakdownChart', 'pie', {
+                    labels: Object.keys(allowances),
+                    datasets: [{ data: Object.values(allowances), backgroundColor: ['#36A2EB', '#FFCE56', '#4BC0C0', '#FF6384', '#9966FF', '#FF9F40', '#C9CBCF'] }]
+                }, { responsive: true, plugins: { legend: { position: 'top' } } });
+            }, 0);
+        }
+
+        function renderPayrollReport(dataToRender = employeesData) {
+            const table = document.getElementById('payroll-report-table');
+            const thead = table.querySelector('thead');
+            const tfoot = table.querySelector('tfoot');
+            const tbody = table.querySelector('tbody');
+            if (!table) return;
+
+            // Setup filters first time
+            setupPayrollFilters();
+
+            tfoot.innerHTML = '';
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            if (employeesData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="no-data">يرجى تحميل ملف بيانات لعرض التقرير</td></tr>';
+                return;
+            }
+
+            const headers = [
+                'الرقم الوظيفي', 'الاسم', 'الراتب الأساسي', 'بدل سكن', 'بدل مواصلات', 
+                'بدلات أخرى', 'إجمالي البدلات', 'إجمالي الراتب', 'الخصومات', 'صافي الراتب'
+            ];
+            
+            let headerHtml = '<tr>';
+            headers.forEach(h => headerHtml += `<th>${h}</th>`);
+            headerHtml += '</tr>';
+            thead.innerHTML = headerHtml;
+
+            let bodyHtml = '';
+            dataToRender.forEach(emp => {
+                const otherAllowances = emp.totalAllowances - (emp.housingAllowance + emp.transportAllowance);
+                bodyHtml += `
+                    <tr>
+                        <td>${emp.employeeId}</td>
+                        <td>${emp.name}</td>
+                        <td>${emp.basicSalary.toLocaleString()}</td>
+                        <td>${emp.housingAllowance.toLocaleString()}</td>
+                        <td>${emp.transportAllowance.toLocaleString()}</td>
+                        <td>${otherAllowances.toLocaleString()}</td>
+                        <td>${emp.totalAllowances.toLocaleString()}</td>
+                        <td>${emp.totalSalary.toLocaleString()}</td>
+                        <td>${emp.totalDeductions.toLocaleString()}</td>
+                        <td>${emp.netSalary.toLocaleString()}</td>
+                    </tr>
+                `;
             });
-            const modeSalary = Object.entries(salaryFrequency).reduce((a, b) => a[1] > b[1] ? a : b)[0];
-            
-            document.getElementById('totalSalaries').textContent = totalSalaries.toLocaleString() + ' ريال';
-            document.getElementById('highestSalary').textContent = highestSalary.toLocaleString() + ' ريال';
-            document.getElementById('lowestSalary').textContent = lowestSalary.toLocaleString() + ' ريال';
-            document.getElementById('averageSalary').textContent = Math.round(averageSalary).toLocaleString() + ' ريال';
-            document.getElementById('modeSalary').textContent = parseFloat(modeSalary).toLocaleString() + ' ريال';
-            
-            // تحليل الرواتب حسب الأقسام
-            const departmentMap = {};
-            employees.forEach(emp => {
-                if (!departmentMap[emp.department]) {
-                    departmentMap[emp.department] = {
-                        totalSalary: 0,
-                        count: 0,
-                        salaries: []
-                    };
+            tbody.innerHTML = bodyHtml;
+
+            // Calculate and render totals footer
+            if (dataToRender.length > 0) {
+                const totals = dataToRender.reduce((acc, emp) => {
+                    acc.basicSalary += emp.basicSalary || 0;
+                    acc.housingAllowance += emp.housingAllowance || 0;
+                    acc.transportAllowance += emp.transportAllowance || 0;
+                    acc.totalAllowances += emp.totalAllowances || 0;
+                    acc.totalSalary += emp.totalSalary || 0;
+                    acc.totalDeductions += emp.totalDeductions || 0;
+                    acc.netSalary += emp.netSalary || 0;
+                    return acc;
+                }, { basicSalary: 0, housingAllowance: 0, transportAllowance: 0, totalAllowances: 0, totalSalary: 0, totalDeductions: 0, netSalary: 0 });
+
+                const totalOtherAllowances = dataToRender.reduce((sum, emp) => {
+                    return sum + (emp.totalAllowances - (emp.housingAllowance + emp.transportAllowance));
+                }, 0);
+
+                const footerHtml = `
+                    <tr>
+                        <td colspan="2" style="font-weight: bold;">الإجمالي</td>
+                        <td style="font-weight: bold;">${totals.basicSalary.toLocaleString()}</td>
+                        <td style="font-weight: bold;">${totals.housingAllowance.toLocaleString()}</td>
+                        <td style="font-weight: bold;">${totals.transportAllowance.toLocaleString()}</td>
+                        <td style="font-weight: bold;">${totalOtherAllowances.toLocaleString()}</td>
+                        <td style="font-weight: bold;">${totals.totalAllowances.toLocaleString()}</td>
+                        <td style="font-weight: bold;">${totals.totalSalary.toLocaleString()}</td>
+                        <td style="font-weight: bold;">${totals.totalDeductions.toLocaleString()}</td>
+                        <td style="font-weight: bold;">${totals.netSalary.toLocaleString()}</td>
+                    </tr>
+                `;
+                tfoot.innerHTML = footerHtml;
+            }
+        }
+
+        function setupPayrollFilters() {
+            const deptFilter = document.getElementById('payrollDeptFilter');
+            const natFilter = document.getElementById('payrollNatFilter');
+
+            // Check if filters are already populated
+            if (deptFilter.options.length > 1) return;
+
+            const departments = [...new Set(employeesData.map(e => e.department).filter(Boolean))];
+            const nationalities = [...new Set(employeesData.map(e => e.nationality).filter(Boolean))];
+
+            departments.sort().forEach(dept => {
+                deptFilter.add(new Option(dept, dept));
+            });
+
+            nationalities.sort().forEach(nat => {
+                natFilter.add(new Option(nat, nat));
+            });
+        }
+
+        function applyPayrollFilters() {
+            const searchTerm = document.getElementById('payrollSearchInput').value.toLowerCase();
+            const dept = document.getElementById('payrollDeptFilter').value;
+            const nat = document.getElementById('payrollNatFilter').value;
+
+            const filteredData = employeesData.filter(emp => {
+                const nameMatch = emp.name.toLowerCase().includes(searchTerm) || emp.employeeId.includes(searchTerm);
+                const deptMatch = !dept || emp.department === dept;
+                const natMatch = !nat || emp.nationality === nat;
+                return nameMatch && deptMatch && natMatch;
+            });
+
+            renderPayrollReport(filteredData);
+        }
+
+        function renderTabularAnalysis(dataToRender = employeesData) {
+            const container = document.getElementById('tabularAnalysisContent');
+            if (employeesData.length === 0) {
+                container.innerHTML = '<div class="no-data">يرجى تحميل ملف بيانات لعرض التحليلات</div>';
+                return;
+            }
+
+            // Setup filters first time
+            setupTabularFilters();
+
+            const currencyFormat = (num) => num.toLocaleString('ar-SA', { style: 'currency', currency: 'SAR' });
+
+            const createSummaryTable = (title, data) => {
+                let tableHtml = `
+                    <div class="org-section">
+                        <h3 class="chart-title" style="color: var(--primary);">${title}</h3>
+                        ${Object.keys(data).length === 0 ? '<p class="no-data">لا توجد بيانات لهذه الفلاتر.</p>' : `
+                        <table class="table-view" style="display: table;">
+                            <thead>
+                                <tr>
+                                    <th>المجموعة</th>
+                                    <th>عدد الموظفين</th>
+                                    <th>إجمالي صافي الرواتب</th>
+                                    <th>إجمالي البدلات</th>
+                                    <th>إجمالي الخصومات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                        `}
+                `;
+                for (const key in data) {
+                    const item = data[key];
+                    tableHtml += `
+                        <tr>
+                            <td>${key}</td>
+                            <td>${item.count}</td>
+                            <td>${currencyFormat(item.netSalary)}</td>
+                            <td>${currencyFormat(item.totalAllowances)}</td>
+                            <td>${currencyFormat(item.totalDeductions)}</td>
+                        </tr>
+                    `;
                 }
-                departmentMap[emp.department].totalSalary += emp.totalSalary;
-                departmentMap[emp.department].count++;
-                departmentMap[emp.department].salaries.push(emp.totalSalary);
-            });
-            
-            // فرز الأقسام حسب إجمالي الرواتب
-            const sortedDepartments = Object.entries(departmentMap).sort((a, b) => b[1].totalSalary - a[1].totalSalary);
-            
-            // تحديث جدول الرواتب حسب الأقسام
-            const salaryDepartmentTableBody = document.getElementById('salaryDepartmentTableBody');
-            salaryDepartmentTableBody.innerHTML = '';
-            
-            sortedDepartments.forEach(([department, data]) => {
-                const avgSalary = data.totalSalary / data.count;
-                const maxSalary = Math.max(...data.salaries);
-                const minSalary = Math.min(...data.salaries);
-                
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${department}</td>
-                    <td>${data.totalSalary.toLocaleString()} ريال</td>
-                    <td>${Math.round(avgSalary).toLocaleString()} ريال</td>
-                    <td>${maxSalary.toLocaleString()} ريال</td>
-                    <td>${minSalary.toLocaleString()} ريال</td>
-                    <td>${data.count}</td>
-                `;
-                salaryDepartmentTableBody.appendChild(row);
-            });
-            
-            // تحليل الرواتب حسب الجنس
-            const maleEmployees = employees.filter(emp => emp.gender === 'ذكر');
-            const femaleEmployees = employees.filter(emp => emp.gender === 'أنثى');
-            
-            const maleTotalSalary = maleEmployees.reduce((sum, emp) => sum + emp.totalSalary, 0);
-            const femaleTotalSalary = femaleEmployees.reduce((sum, emp) => sum + emp.totalSalary, 0);
-            const maleAverageSalary = maleEmployees.length > 0 ? maleTotalSalary / maleEmployees.length : 0;
-            const femaleAverageSalary = femaleEmployees.length > 0 ? femaleTotalSalary / femaleEmployees.length : 0;
-            const salaryDifference = Math.abs(maleAverageSalary - femaleAverageSalary);
-            
-            document.getElementById('maleAverageSalary').textContent = Math.round(maleAverageSalary).toLocaleString() + ' ريال';
-            document.getElementById('femaleAverageSalary').textContent = Math.round(femaleAverageSalary).toLocaleString() + ' ريال';
-            document.getElementById('maleTotalSalary').textContent = maleTotalSalary.toLocaleString() + ' ريال';
-            document.getElementById('femaleTotalSalary').textContent = femaleTotalSalary.toLocaleString() + ' ريال';
-            document.getElementById('salaryDifference').textContent = Math.round(salaryDifference).toLocaleString() + ' ريال';
-        }
-        
-        // تحليل الخبرة
-        function updateExperienceAnalysis() {
-            // الإحصائيات الأساسية للخبرة
-            const totalExperience = employees.reduce((sum, emp) => sum + emp.experienceYears, 0);
-            const averageExperience = totalExperience / employees.length;
-            const maxExperience = Math.max(...employees.map(emp => emp.experienceYears));
-            const minExperience = Math.min(...employees.map(emp => emp.experienceYears));
-            
-            // عدد الموظفين بأكثر من 10 سنوات خبرة
-            const experiencedEmployees = employees.filter(emp => emp.experienceYears > 10).length;
-            const experiencedPercentage = (experiencedEmployees / employees.length) * 100;
-            
-            document.getElementById('averageExperience').textContent = averageExperience.toFixed(1) + ' سنة';
-            document.getElementById('maxExperience').textContent = maxExperience.toFixed(1) + ' سنة';
-            document.getElementById('minExperience').textContent = minExperience.toFixed(1) + ' سنة';
-            document.getElementById('experiencedEmployees').textContent = experiencedEmployees;
-            document.getElementById('experiencedPercentage').textContent = experiencedPercentage.toFixed(1) + '%';
-            
-            // تحليل الخبرة حسب الأقسام
-            const departmentMap = {};
-            employees.forEach(emp => {
-                if (!departmentMap[emp.department]) {
-                    departmentMap[emp.department] = {
-                        totalExperience: 0,
-                        count: 0,
-                        experiences: []
-                    };
+                if (Object.keys(data).length > 0) {
+                    tableHtml += '</tbody></table>';
                 }
-                departmentMap[emp.department].totalExperience += emp.experienceYears;
-                departmentMap[emp.department].count++;
-                departmentMap[emp.department].experiences.push(emp.experienceYears);
+                tableHtml += '</div>';
+                return tableHtml;
+            };
+
+            const aggregateBy = (key) => {
+                return dataToRender.reduce((acc, emp) => {
+                    const group = emp[key] || 'غير محدد';
+                    if (!acc[group]) {
+                        acc[group] = {
+                            count: 0,
+                            netSalary: 0,
+                            totalAllowances: 0,
+                            totalDeductions: 0
+                        };
+                    }
+                    acc[group].count++;
+                    acc[group].netSalary += emp.netSalary || 0;
+                    acc[group].totalAllowances += emp.totalAllowances || 0;
+                    acc[group].totalDeductions += emp.totalDeductions || 0;
+                    return acc;
+                }, {});
+            };
+
+            const byDept = aggregateBy('department');
+            const byNat = aggregateBy('nationality');
+            const byPos = aggregateBy('position');
+
+            container.innerHTML = 
+                createSummaryTable('ملخص مالي حسب القسم', byDept) +
+                createSummaryTable('ملخص مالي حسب الجنسية', byNat) +
+                createSummaryTable('ملخص مالي حسب المسمى الوظيفي', byPos);
+        }
+
+        function setupTabularFilters() {
+            const deptFilter = document.getElementById('tabularDeptFilter');
+            const natFilter = document.getElementById('tabularNatFilter');
+
+            if (deptFilter.options.length > 1) return;
+
+            const departments = [...new Set(employeesData.map(e => e.department).filter(Boolean))];
+            const nationalities = [...new Set(employeesData.map(e => e.nationality).filter(Boolean))];
+
+            departments.sort().forEach(dept => {
+                deptFilter.add(new Option(dept, dept));
             });
-            
-            // فرز الأقسام حسب متوسط الخبرة
-            const sortedDepartments = Object.entries(departmentMap).sort((a, b) => {
-                const avgA = a[1].totalExperience / a[1].count;
-                const avgB = b[1].totalExperience / b[1].count;
-                return avgB - avgA;
+
+            nationalities.sort().forEach(nat => {
+                natFilter.add(new Option(nat, nat));
             });
-            
-            // تحديث جدول الخبرة حسب الأقسام
-            const experienceDepartmentTableBody = document.getElementById('experienceDepartmentTableBody');
-            experienceDepartmentTableBody.innerHTML = '';
-            
-            sortedDepartments.forEach(([department, data]) => {
-                const avgExperience = data.totalExperience / data.count;
-                const maxExperience = Math.max(...data.experiences);
-                const minExperience = Math.min(...data.experiences);
-                
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${department}</td>
-                    <td>${avgExperience.toFixed(1)} سنة</td>
-                    <td>${maxExperience.toFixed(1)} سنة</td>
-                    <td>${minExperience.toFixed(1)} سنة</td>
-                    <td>${data.count}</td>
+        }
+
+        function applyTabularFilters() {
+            const dept = document.getElementById('tabularDeptFilter').value;
+            const nat = document.getElementById('tabularNatFilter').value;
+
+            const filteredData = employeesData.filter(emp => {
+                const deptMatch = !dept || emp.department === dept;
+                const natMatch = !nat || emp.nationality === nat;
+                return deptMatch && natMatch;
+            });
+
+            renderTabularAnalysis(filteredData);
+        }
+
+        function renderDeductionsAnalysis(dataToRender = employeesData) {
+            const container = document.getElementById('deductionsAnalysisContent');
+            if (employeesData.length === 0) {
+                container.innerHTML = '<div class="no-data">يرجى تحميل ملف بيانات لعرض التحليلات</div>';
+                return;
+            }
+
+            // Setup filters first time
+            setupDeductionsFilters();
+
+            charts.forEach(chart => chart.destroy());
+            charts = [];
+
+            const currencyFormat = (num) => num.toLocaleString('ar-SA', { style: 'currency', currency: 'SAR' });
+
+            // --- Calculate Totals ---
+            const totalDeductions = dataToRender.reduce((sum, e) => sum + (e.totalDeductions || 0), 0);
+            const totalLoans = dataToRender.reduce((sum, e) => sum + (e.totalLoans || 0), 0);
+            const totalSocialInsurance = dataToRender.reduce((sum, e) => sum + (e.socialInsurance || 0), 0);
+            const totalPenalties = dataToRender.reduce((sum, e) => sum + (e.totalPenalties || 0), 0);
+
+            // --- Render HTML Structure ---
+            container.innerHTML = `
+                <div class="stats-cards">
+                    <div class="stat-card"><div class="stat-value">💸</div><div class="stat-value">${currencyFormat(totalDeductions)}</div><div class="stat-label">إجمالي الخصومات</div></div>
+                    <div class="stat-card"><div class="stat-value">🏦</div><div class="stat-value">${currencyFormat(totalLoans)}</div><div class="stat-label">إجمالي السلف</div></div>
+                    <div class="stat-card"><div class="stat-value">🛡️</div><div class="stat-value">${currencyFormat(totalSocialInsurance)}</div><div class="stat-label">إجمالي التأمينات</div></div>
+                    <div class="stat-card"><div class="stat-value">⚖️</div><div class="stat-value">${currencyFormat(totalPenalties)}</div><div class="stat-label">إجمالي الجزاءات</div></div>
+                </div>
+                <div id="deductionTablesContainer"></div>
+                <div class="org-section">
+                    <h3 class="chart-title" style="color: var(--primary);">ملخص الخصومات حسب النوع</h3>
+                    <table class="table-view" id="deductionsSummaryTable" style="display: table;"></table>
+                </div>
+            `;
+
+            // --- Create Tables ---
+            const createDeductionTable = (title, data) => {
+                let tableHtml = `
+                    <div class="org-section">
+                        <h3 class="chart-title" style="color: var(--primary);">${title}</h3>
+                        <table class="table-view" style="display: table;">
+                            <thead>
+                                <tr>
+                                    <th>المجموعة</th>
+                                    <th>إجمالي التأمينات</th>
+                                    <th>إجمالي السلف</th>
+                                    <th>إجمالي الجزاءات</th>
+                                    <th>إجمالي الخصومات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                 `;
-                experienceDepartmentTableBody.appendChild(row);
+                for (const key in data) {
+                    const item = data[key];
+                    tableHtml += `
+                        <tr>
+                            <td>${key}</td>
+                            <td>${currencyFormat(item.socialInsurance)}</td>
+                            <td>${currencyFormat(item.totalLoans)}</td>
+                            <td>${currencyFormat(item.totalPenalties)}</td>
+                            <td>${currencyFormat(item.totalDeductions)}</td>
+                        </tr>
+                    `;
+                }
+                tableHtml += '</tbody></table></div>';
+                return tableHtml;
+            };
+
+            const aggregateDeductionsBy = (key) => {
+                return dataToRender.reduce((acc, emp) => {
+                    const group = emp[key] || 'غير محدد';
+                    if (!acc[group]) {
+                        acc[group] = {
+                            socialInsurance: 0,
+                            totalLoans: 0,
+                            totalPenalties: 0,
+                            totalDeductions: 0
+                        };
+                    }
+                    acc[group].socialInsurance += emp.socialInsurance || 0;
+                    acc[group].totalLoans += emp.totalLoans || 0;
+                    acc[group].totalPenalties += emp.totalPenalties || 0;
+                    acc[group].totalDeductions += emp.totalDeductions || 0;
+                    return acc;
+                }, {});
+            };
+
+            const byDept = aggregateDeductionsBy('department');
+            const byNat = aggregateDeductionsBy('nationality');
+
+            const tablesContainer = document.getElementById('deductionTablesContainer');
+            tablesContainer.innerHTML = 
+                createDeductionTable('ملخص الخصومات حسب القسم', byDept) +
+                createDeductionTable('ملخص الخصومات حسب الجنسية', byNat);
+
+
+            // Deductions Summary Table (by type)
+            const summaryTable = document.getElementById('deductionsSummaryTable');
+            const deductionFields = [
+                { key: 'socialInsurance', label: 'التأمينات الاجتماعية' },
+                { key: 'totalLoans', label: 'إجمالي السلف' },
+                { key: 'lateness', label: 'تأخير' },
+                { key: 'absence', label: 'غياب' },
+                { key: 'unpaidLeave', label: 'اجازة غير مدفوعة' },
+                { key: 'laborLawViolation', label: 'مخالفات قانون العمل' },
+                { key: 'prepaidSalary', label: 'راتب مدفوع مسبقًا' },
+                { key: 'otherDeductions', label: 'خصومات اخرى' }
+            ];
+
+            let tableHtml = `
+                <thead>
+                    <tr>
+                        <th>نوع الخصم</th>
+                        <th>المبلغ الإجمالي</th>
+                        <th>عدد الموظفين المتأثرين</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            deductionFields.forEach(field => {
+                const totalAmount = dataToRender.reduce((sum, e) => sum + (e[field.key] || 0), 0);
+                const affectedEmployees = dataToRender.filter(e => (e[field.key] || 0) > 0).length;
+                if (totalAmount > 0) {
+                    tableHtml += `
+                        <tr>
+                            <td>${field.label}</td>
+                            <td>${currencyFormat(totalAmount)}</td>
+                            <td>${affectedEmployees}</td>
+                        </tr>
+                    `;
+                }
             });
-            
-            // تحليل الخبرة حسب الجنس
-            const maleEmployees = employees.filter(emp => emp.gender === 'ذكر');
-            const femaleEmployees = employees.filter(emp => emp.gender === 'أنثى');
-            
-            const maleAverageExperience = maleEmployees.length > 0 ? 
-                maleEmployees.reduce((sum, emp) => sum + emp.experienceYears, 0) / maleEmployees.length : 0;
-            const femaleAverageExperience = femaleEmployees.length > 0 ? 
-                femaleEmployees.reduce((sum, emp) => sum + emp.experienceYears, 0) / femaleEmployees.length : 0;
-            const maleMaxExperience = maleEmployees.length > 0 ? 
-                Math.max(...maleEmployees.map(emp => emp.experienceYears)) : 0;
-            const femaleMaxExperience = femaleEmployees.length > 0 ? 
-                Math.max(...femaleEmployees.map(emp => emp.experienceYears)) : 0;
-            const maleMinExperience = maleEmployees.length > 0 ? 
-                Math.min(...maleEmployees.map(emp => emp.experienceYears)) : 0;
-            
-            document.getElementById('maleAverageExperience').textContent = maleAverageExperience.toFixed(1) + ' سنة';
-            document.getElementById('femaleAverageExperience').textContent = femaleAverageExperience.toFixed(1) + ' سنة';
-            document.getElementById('maleMaxExperience').textContent = maleMaxExperience.toFixed(1) + ' سنة';
-            document.getElementById('femaleMaxExperience').textContent = femaleMaxExperience.toFixed(1) + ' سنة';
-            document.getElementById('maleMinExperience').textContent = maleMinExperience.toFixed(1) + ' سنة';
+
+            tableHtml += '</tbody>';
+            summaryTable.innerHTML = tableHtml;
         }
-        
-        // دالة لتوليد معرف فريد
-        function generateId() {
-            return Date.now().toString() + Math.floor(Math.random() * 1000).toString();
+
+        function setupDeductionsFilters() {
+            const deptFilter = document.getElementById('deductionsDeptFilter');
+            const natFilter = document.getElementById('deductionsNatFilter');
+
+            if (deptFilter.options.length > 1) return;
+
+            const departments = [...new Set(employeesData.map(e => e.department).filter(Boolean))];
+            const nationalities = [...new Set(employeesData.map(e => e.nationality).filter(Boolean))];
+
+            departments.sort().forEach(dept => {
+                deptFilter.add(new Option(dept, dept));
+            });
+
+            nationalities.sort().forEach(nat => {
+                natFilter.add(new Option(nat, nat));
+            });
         }
 
-        // ربط أزرار الطي والتوسيع
-        document.getElementById('collapseAllBtn').onclick = collapseAll;
-        document.getElementById('expandAllBtn').onclick = expandAll;
+        function applyDeductionsFilters() {
+            const dept = document.getElementById('deductionsDeptFilter').value;
+            const nat = document.getElementById('deductionsNatFilter').value;
 
-        // البحث عند الكتابة
-        document.getElementById('searchInput').addEventListener('input', searchOrgChart);
-
-        // تبديل بين التبويبات الرئيسية
-        document.querySelectorAll('.main-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
-                this.classList.add('active');
-                document.getElementById(this.getAttribute('data-tab')).classList.add('active');
+            const filteredData = employeesData.filter(emp => {
+                const deptMatch = !dept || emp.department === dept;
+                const natMatch = !nat || emp.nationality === nat;
+                return deptMatch && natMatch;
             });
-        });
 
-        // تبديل بين التبويبات الفرعية في تحليل البيانات
-        document.querySelectorAll('.tab:not(.main-tab)').forEach(tab => {
-            tab.addEventListener('click', function() {
-                const parentTabContent = this.closest('.tab-content');
-                parentTabContent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                parentTabContent.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
-                this.classList.add('active');
-                parentTabContent.querySelector(`#${this.getAttribute('data-tab')}`).classList.add('active');
-            });
-        });
+            renderDeductionsAnalysis(filteredData);
+        }
+
+        function resetDeductionsFilters() {
+            document.getElementById('deductionsDeptFilter').value = '';
+            document.getElementById('deductionsNatFilter').value = '';
+            renderDeductionsAnalysis(employeesData);
+        }
+
+        function resetTabularFilters() {
+            document.getElementById('tabularDeptFilter').value = '';
+            document.getElementById('tabularNatFilter').value = '';
+            renderTabularAnalysis(employeesData);
+        }
+
+        function resetPayrollFilters() {
+            document.getElementById('payrollSearchInput').value = '';
+            document.getElementById('payrollDeptFilter').value = '';
+            document.getElementById('payrollNatFilter').value = '';
+            renderPayrollReport(employeesData);
+        }
+
+        function closeAllPanels() {
+            closeEmployeeCard();
+            // This function is now for panels that use the overlay, 
+            // analytics is a full page now.
+        }
+
+        function showAlert(msg, type) {
+            const el = document.getElementById('alertMessage');
+            el.textContent = msg;
+            el.className = `alert alert-${type}`;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+        }
+
+        function exportChart(chartId, filename) {
+            const canvas = document.getElementById(chartId);
+            const link = document.createElement('a');
+            link.download = filename + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
     </script>
 </body>
 </html>
